@@ -1,5 +1,7 @@
 require 'sinatra'
 require 'redcarpet'
+require 'yomu'
+require 'doc_ripper'
 
 if development?
   require 'sinatra/reloader'
@@ -10,8 +12,46 @@ end
 enable :sessions
 set :session_secret, ENV['SESSION_SECRET']
 
+class Journal
+  def self.init
+    print "Creating/Updating Yomu journal..."
+    @@filename = "/home/samonakuba/Dropbox/Journal 2015 - Part 3.doc"
+    @@cached = File.mtime(@@filename)
+    # @@text = Yomu.new(@@filename).text
+    @@text = DocRipper::TextRipper.new(@@filename).text
+              .gsub(/\u00e2\u0080(\u009C|\u009D)/,'"')
+              .gsub("\u00e2\u0080\u00a6","...")
+    puts "Done!"
+  end
+  def self.text
+    self.init if @@cached != File.mtime(@@filename)
+    @@text
+  end
+end
+
+configure do
+  Journal::init
+end
+
 get "/" do 
-  haml :root
+  haml :lagom
+end
+
+get "/journal" do
+  content_type :text
+  Journal::text
+end
+
+
+get /(\d{4})/ do
+  content_type :text
+  year = params[:captures].first
+  @filename = "/home/samonakuba/Dropbox/Apps/Vicara/#{year} Pomodoro.txt"
+  if File.exists?(@filename)
+    File.read(@filename) 
+  else
+    "No Pomsheet for the year #{year}! Are you really me?!"
+  end
 end
 
 __END__
@@ -20,8 +60,11 @@ __END__
 !!!5
 %html
   %head
+    %script{src:"/javascripts/jquery-2.1.0.min.js"}
   %body
     =yield
+    %script{src: "/javascripts/parsley.js"}
+  %script{src: "/javascripts/lagom.js"}
 
 @@ root
 :markdown

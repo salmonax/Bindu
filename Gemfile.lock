@@ -6,6 +6,7 @@ GEM
       timers (~> 1.1.0)
     coderay (1.1.0)
     daemons (1.1.9)
+    doc_ripper (0.0.5)
     dotenv (0.10.0)
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
@@ -26,12 +27,14 @@ GEM
     haml (4.0.5)
       tilt
     http_parser.rb (0.6.0)
+    json (1.8.3)
     listen (2.7.5)
       celluloid (>= 0.15.2)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
     lumberjack (1.0.5)
     method_source (0.8.2)
+    mime-types (1.25.1)
     multi_json (1.10.1)
     pry (0.9.12.6)
       coderay (~> 1.0)
@@ -67,11 +70,15 @@ GEM
     thor (0.19.1)
     tilt (1.4.1)
     timers (1.1.0)
+    yomu (0.2.4)
+      json (~> 1.8)
+      mime-types (~> 1.23)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  doc_ripper
   dotenv
   guard-livereload
   haml
@@ -80,3 +87,7 @@ DEPENDENCIES
   sinatra
   sinatra-contrib
   thin
+  yomu
+
+BUNDLED WITH
+   1.10.6

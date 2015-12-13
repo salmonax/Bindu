@@ -1,0 +1,58 @@
+#wrapper
+  #container
+    #output
+    #calendar
+    / #pomsheet
+  #filter-container
+
+:css
+  html, body {
+    margin: 0; 
+    height: 100%;
+    color: white;
+  }
+
+  #wrapper {
+    padding: 0 0 250px 0;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  #filter-container {
+    margin-bottom: -250px;
+    height: 250px;
+    background-color: rgb(80,80,80);
+  }
+
+  #output {
+    font-size: 12px;
+    white-space: pre-wrap;
+    left: 0px;
+    top: 0px;
+    height: auto;
+    width: 100%;
+    background: rgb(30,50,100);
+  }
+  #container { 
+    / display: flex;
+    / flex-flow: column;
+    color: white;
+    position: relative;
+    height: 100%;
+    width: 100%;
+    background: rgb(50,50,50);
+    overflow: auto;
+  }
+  #pomsheet { 
+    / align-self: center;
+    border-style: none dashed;
+    border-color: grey;
+    border-width: 1px;
+    padding: 0 10px;
+    margin: 0 auto;
+    max-width: 560px;
+    white-space: pre-wrap;
+  }
