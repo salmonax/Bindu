@@ -16,15 +16,18 @@ var filterTitles = "date time category description duration".split(' ');
 
 
 
-// var lastYear = $.get('/2015');
-// var thisYear = $.get('/2014');
+var lastYear = $.get('/2015');
+var thisYear = $.get('/2014');
 
-// $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
-//   var data = lastYear[0] + "\n" + thisYear[0];
+$.when(lastYear,thisYear).done(function (lastYear,thisYear) {
+  var data = lastYear[0] + "\n" + thisYear[0];
 
-$.get("/2015",function (data) {
+// $.get("/2015",function (data) {
 
   var parsley = buildData(data);
+  //This is... iffy. Not sure where to put it yet:
+  var parsleyColors = generateParsleyColors(parsley,"category");
+
   var filters = "year month week tag category subcategory".split(' ');
   // p(parsley);
   var selectionObject = {}
@@ -39,6 +42,7 @@ $.get("/2015",function (data) {
  
 
   // p(parsley.tasks);
+
 
   $(".filter").mouseup(function() {
     var selection = [];
@@ -73,47 +77,149 @@ $.get("/2015",function (data) {
 
   });
 
-  function renderCalendar() {
+  function generateParsleyColors(parsley,property) { 
+    var colors = {}
+    var stats = Object.keys(parsley.stats[property]);
+    var seed;
+    // var seed = stats.reduce( function(sum,stat) { 
+    //   return sum + stat.charCodeAt(0);
+    // },0);
+    // seed = 1;
+
+    // p(seed);
+    // p(seeded());
+    // p(seeded());
+
+    stats.forEach( function(stat) { 
+      // sums the ascii values of each character in the stat to use as seed
+      var charSum = stat.split('').reduce( function(sum,item,i) { return sum + item.charCodeAt()*i+2 },0);
+      seed = charSum;
+
+      var color = {
+        r: parseInt(seededRandom()*100+50),
+        g: parseInt(seededRandom()*100+50),
+        b: parseInt(seededRandom()*100+100)
+      }
+      var colorString = "rgb("+color.r+','+color.g+','+color.b+")";
+
+      colors[stat] = colorString;
+
+      // $("#output").append('<div style="background:'+colorString+'">'+stat+' '+colorString+' '+charSum+'</div>');
+    });
+    return colors;
+
+    function seededRandom() {
+      var x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    }
+
+  }
+
+  function renderCalendar(startDate) {
     // var $calendar = $("#pomsheet");
     $("#calendar").append(div("cal-heading",true));
     var labels = "year week month day".split(' ');
     // $calendar.append(div("cal-heading",true));
     $("#cal-heading").append(div(labels,false,"label"));
+    $("#calendar").append(div("cal-nav",true))
     $("#calendar").append(div("cal-body",true));
 
-    renderWeek(weekOf(currentDate));
+    // div("previous");
+    var startDate = startDate || weekOf(currentDate);
+    renderWeek(startDate);
+
     setStyles();
+
     function setStyles() {
+      var base = "rgb(50,50,100)";
+      var veryDark = "rgb(25,25,50)";
+      var veryLight = "rgb(100,100,200)";
+      var gridLighter = "rgb(40,40,90)"
+      var gridDarker = "rgb(35,35,85)"
+
       $("#cal-heading").css({
         boxSizing: "border-box",
         height: "30px",
         paddingTop: "5px",
         paddingLeft: "5px",
-        background: "rgb(25,25,50)",
+        background: veryDark,
         overflow: "auto"
       });
       $("#calendar").css({
         // display: "flex",
         // flexFlow: "column"
-        position: "absolute",
+        // position: "absolute",
         top: "0px",
         bottom: "0px",
         left: "0px",
         right: "0px",
-        background: "rgb(50,50,100)",
+        background: base,
         overflow: "auto"
       });
+      $("#week-title").css({
+        float: "left"
+      });
+      $("#mini-year-nav").css({
+        display: "flex",
+        flexGrow: "2",
+        float: "left",
+        background: gridDarker
+      });
+      $(".mini-month").css({
+        alignSelf: "center",
+        fontSize: "10px",
+        flexGrow: "2",
+        // float: "left",
+        marginRight: "1px",
+        background: base,
+        height: "80%"
+      });
+      $(".mini-month:nth-child(4n)").css({
+        marginRight: "5px"
+      });
+      $(".mini-month:first").css({
+        marginLeft: "5px"
+      });
+      $("#mini-month-nav").css({
+        display: "flex",
+        flexGrow: "0.5",
+        background: gridDarker
+      });
+      $(".mini-week").css({
+        alignSelf: "center",
+        marginRight: "1px",
+        flexGrow: "2",
+        background: base,
+        height: "80%"
+      });
+      $(".mini-week:first").css({
+        marginLeft: "3px"
+      })
+      $(".mini-week:last").css({
+        marginRight: "3px"
+      })
       $(".label").css({
         float: "left",
         padding: "3px 10px",
         margin: "0 1px",
-        background: "rgb(50,50,100)"
+        background: base
       });
-      $("#cal-body").css({
-        marginTop: "30px",
-        boxSizing: "border-box",
-        position: "absolute",
+      $("#cal-nav").css({
+        display: "flex",
         background: "red",
+        overflow: "auto"
+      });
+      $(".nav-button").css({
+        padding: "3px",
+        background: veryLight,
+        float: "right"
+      })
+      $("#cal-body").css({
+        // marginTop: "30px",
+        boxSizing: "border-box",
+        // position: "absolute",
+        // background: "red",
+        margin: "10px",
         display: "flex",
         flexFlow: "row",
         top: "0px",
@@ -130,24 +236,59 @@ $.get("/2015",function (data) {
         flexFlow: "column",
         flexGrow: "2",
         height: "100%",
-        borderStyle: "dashed",
-        borderWidth: "1px",
+        borderStyle: "dotted",
+        borderColor: veryLight,
+        borderWidth: "1px 1px 1px 0px",
       });
+      $(".week-column:first").css({
+        borderWidth: "1px 1px 1px 1px"
+      })
       $(".day-heading").css({
-        background: "blue",
+        // background: "blue",
         textAlign: "center"
       });
       $(".day-tasks").css({
         // opacity: 0.6,
+        fontSize: "11px",
         position: "relative",
         height: "100%",
-        background: "orange",
+        // background: "orange",
         overflow: "hidden"
       });
       $(".task").css({
+        // fontSize: "11px",
+        boxSizing: "border-box",
+        paddingTop: "1px",
+        paddingRight: "18px",
+        margin: "0px 0px 1px 18px",
+        textAlign: "center",
         position: "absolute",
-        background: "green",
+        // background: "green",
         width: "100%"
+      });
+      $(".day-row").css({
+
+        paddingLeft: "3px",
+        lineHeight: "16px"
+      });
+      $(".week-column:nth-child(even) .day-row:nth-child(odd)").css({
+        background: gridDarker
+      });
+      
+      $(".week-column:nth-child(even) .day-row:nth-child(even)").css({
+        background: gridLighter,
+      //   borderStyle: "dotted",
+      //   borderWidth: "0px 0px 1px 0px",
+      //   borderColor: veryLight
+      });
+      $(".week-column:nth-child(odd) .day-row:nth-child(even)").css({
+        background: gridDarker,
+        // borderStyle: "dotted",
+        // borderWidth: "0px 0px 1px 0px",
+        // borderColor: veryLight
+      });
+      $(".week-column:nth-child(odd) .day-row:nth-child(odd)").css({
+        background: gridLighter
       });
     }
 
@@ -156,6 +297,10 @@ $.get("/2015",function (data) {
       var startDay = 7*Math.floor((day-1)/7)+1;
       var copiedDate = new Date(date.getTime());
       copiedDate.setDate(startDay);
+      copiedDate.setHours(0);
+      copiedDate.setMinutes(0);
+      copiedDate.setSeconds(0);
+      copiedDate.setMilliseconds(0);
       return copiedDate;
     }
 
@@ -178,14 +323,61 @@ $.get("/2015",function (data) {
       var startMonthDay = startDate.getDate();
       var startDay = startDate.getDay();
       var body = $("#cal-body");
+      var nav = $("#cal-nav");
       var tasks = filterToWeek(startDate);
+      //TODO: ugh, please refactor this!
       body.empty();
+      nav.empty();
 
-      for (var i = 0; i < 8; i++ ) {
+      var navLabels = "next previous today".split(' ');
+      nav.append(div("nav-title",true));
+      nav.append('<div id="week-title">'+startDate.toLocaleDateString()+"</div>");
+      nav.append(div("mini-year-nav",true));
+      nav.append(div("mini-month-nav",true));
+
+      var yearNav = $("#mini-year-nav");
+      var monthNav = $("#mini-month-nav");
+
+      for (var i = 0; i < 12; i++) {
+        yearNav.append('<div class="mini-month"></div>');
+      }
+
+      for (var i = 0; i < 5; i++) {
+        monthNav.append('<div class="mini-week"></div>');
+      }
+
+      nav.append(div(navLabels,false,"nav-button"));
+
+      $(".nav-button").on("touch click",function() {
+        var label = this.id;
+        var action = {
+          next: function() {
+            var nextDate = new Date(startDate.getTime());
+            nextDate.setDate(startDate.getDate()+7);
+            renderWeek(nextDate);
+            setStyles();
+            // r(nextDate);
+          },
+          previous: function () {
+            var prevDate = new Date(startDate.getTime());
+            prevDate.setDate(startDate.getDate()-7);
+            renderWeek(prevDate);
+            setStyles();
+            // r(prevDate);
+          },
+          today: function () {
+            renderWeek(weekOf(currentDate));
+            setStyles();
+          }
+        };
+        action[label]();
+      });
+
+      for (var i = 0; i < 7; i++ ) {
         body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' ('+(startMonthDay+i)+')</div><div class="day-tasks"></div></div>');
       }
-      for (var j = 0; j < 24; j++ ) {
-          $(".day-tasks").append("<div class=day-row>"+j+"</div>");
+      for (var j = 0; j < 48; j++ ) {
+          $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2)+"</div>");
       }
 
       // $(".day-row").each(function(index,el) {
@@ -194,24 +386,41 @@ $.get("/2015",function (data) {
       var columns = $(".day-tasks");
       tasks.forEach(function(task) {
         var day = task.startDate.getDate()-startMonthDay;
-        var time = task.startDate.getHours() + task.startDate.getMinutes()/60;
-        var top = (time/24*100).toFixed(2) +"%";
-        $(columns[day]).append('<div class="task" style="top:'+top+'">'+time+" "+task.category+'</div>');
+        var startTime = task.startDate.getHours() + task.startDate.getMinutes()/60;
+        //date difference booleanized on purpose; dayBleedOffset is 0 or 24.
+        //don't presently see need to accomodate tasks of 48+ pomodoro duration.
+        var dayBleedOffset = (task.endDate.getDate()-task.startDate.getDate() > 0)*24;
+        var endTime = task.endDate.getHours() + task.endDate.getMinutes()/60 + dayBleedOffset;
+
+        var top = (startTime/24*100).toFixed(2);
+        //clamps to 0
+        var bottom = Math.max((100-(endTime)/24*100),0).toFixed(2);
+
+        $(columns[day]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+'</div>');
+        // p(day);
+        if (endTime > 24 && day < 6) {
+          top = 0.00;
+          //if, in unlikely even of 48+ pomodoro task, clamps to 0.
+          bottom = Math.max((100-(endTime-dayBleedOffset)/24*100),0).toFixed(2);
+          $(columns[day+1]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%">'+task.category+'</div>');
+        }
       });
 
 
       function filterToWeek(startDate,tasks) {
+        // p(startDate);
         var weekStart = startDate.getTime(),
             weekEnd = new Date(weekStart);
         weekEnd.setDate(startDate.getDate()+7);
 
         var tasks = tasks || parsley.tasks
-
+        // p(tasks.length);
 
         var filtered = tasks.filter(function(task) {
           var taskStart = task.startDate.getTime();
           return taskStart >= weekStart && taskStart < weekEnd;
         });
+        // p(filtered.length);
         return filtered;
       }
 

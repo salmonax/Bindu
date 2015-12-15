@@ -24,8 +24,8 @@
       //NOTE: currently assumes tag definitions are at the top of file!
       //would be better to capture all tag defs FIRST, then re-iterate
 
-      var eof = 200;
-      // var eof = lines.length;
+      // var eof = 200;
+      var eof = lines.length;
       for (i = 0; i < eof; i++) {
         line = lines[i].replace(/\r?\n|\r/g,'');
         if (isComment(line)) { continue; }

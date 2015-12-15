@@ -37,6 +37,10 @@ get "/" do
   haml :lagom
 end
 
+get "/calendar" do
+  haml :calendar
+end
+
 get "/journal" do
   content_type :text
   Journal::text
@@ -65,6 +69,16 @@ __END__
     =yield
     %script{src: "/javascripts/parsley.js"}
   %script{src: "/javascripts/lagom.js"}
+
+:css
+  html, body {
+    margin: 0; 
+    height: 100%;
+    color: white;
+  }
+  
+@@ calendar
+#calendar
 
 @@ root
 :markdown
