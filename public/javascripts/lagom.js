@@ -34,6 +34,11 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
 
   var currentDate = new Date();
 
+  
+  //DELETE!
+  // currentDate.setDate(currentDate.getDate()-1);
+
+
   renderCalendar();
 
   loadPomsheet(data);
@@ -126,8 +131,8 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
 
     // div("previous");
     var startDate = startDate || weekOf(currentDate);
-    renderWeek(startDate);
 
+    renderWeek(startDate,8);
     setStyles();
 
     function setStyles() {
@@ -206,11 +211,15 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       });
       $("#cal-nav").css({
         display: "flex",
-        background: "red",
+        // background: "red",
+        background: gridDarker,
         overflow: "auto"
       });
       $(".nav-button").css({
-        padding: "3px",
+        padding: "0px 5px",
+        textAlign: "center",
+        margin: "1px",
+        minWidth: "20px",
         background: veryLight,
         float: "right"
       })
@@ -319,17 +328,24 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       return html;
     }
 
-    function renderWeek(startDate) {
+    function renderWeek(startDate,hoursOffset) {
+      if (hoursOffset) { 
+        startDate.setHours(hoursOffset); 
+      } else {
+        hoursOffset = 0;
+      }
+
       var startMonthDay = startDate.getDate();
       var startDay = startDate.getDay();
       var body = $("#cal-body");
       var nav = $("#cal-nav");
       var tasks = filterToWeek(startDate);
       //TODO: ugh, please refactor this!
+
       body.empty();
       nav.empty();
 
-      var navLabels = "next previous today".split(' ');
+      var navLabels = "- + R previous next today".split(' ');
       nav.append(div("nav-title",true));
       nav.append('<div id="week-title">'+startDate.toLocaleDateString()+"</div>");
       nav.append(div("mini-year-nav",true));
@@ -354,19 +370,39 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
           next: function() {
             var nextDate = new Date(startDate.getTime());
             nextDate.setDate(startDate.getDate()+7);
-            renderWeek(nextDate);
+            renderWeek(nextDate,hoursOffset);
             setStyles();
             // r(nextDate);
           },
-          previous: function () {
+          previous: function() {
             var prevDate = new Date(startDate.getTime());
             prevDate.setDate(startDate.getDate()-7);
-            renderWeek(prevDate);
+            renderWeek(prevDate,hoursOffset);
             setStyles();
             // r(prevDate);
           },
-          today: function () {
-            renderWeek(weekOf(currentDate));
+          today: function() {
+            renderWeek(weekOf(currentDate),hoursOffset);
+            setStyles();
+          },
+          '+': function() {
+            hoursOffset += 1;
+            //TODO: please fix +24 and -0 offsets.
+            hoursOffset = Math.min(hoursOffset,23);
+            renderWeek(startDate,hoursOffset);
+            setStyles();
+            // r(hoursOffset);
+          },
+          '-': function() {
+            hoursOffset -= 1;
+            hoursOffset = Math.max(hoursOffset,0);
+            renderWeek(startDate,hoursOffset);
+            setStyles();
+            // r(hoursOffset);
+          },
+          R: function() {
+            hoursOffset = 0;
+            renderWeek(startDate,hoursOffset);
             setStyles();
           }
         };
@@ -377,21 +413,29 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' ('+(startMonthDay+i)+')</div><div class="day-tasks"></div></div>');
       }
       for (var j = 0; j < 48; j++ ) {
-          $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2)+"</div>");
+          $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2+hoursOffset)+"</div>");
       }
 
       // $(".day-row").each(function(index,el) {
       //   // p(index);
       // });
       var columns = $(".day-tasks");
-      tasks.forEach(function(task) {
-        var day = task.startDate.getDate()-startMonthDay;
-        var startTime = task.startDate.getHours() + task.startDate.getMinutes()/60;
-        //date difference booleanized on purpose; dayBleedOffset is 0 or 24.
-        //don't presently see need to accomodate tasks of 48+ pomodoro duration.
-        var dayBleedOffset = (task.endDate.getDate()-task.startDate.getDate() > 0)*24;
-        var endTime = task.endDate.getHours() + task.endDate.getMinutes()/60 + dayBleedOffset;
+      tasks.forEach(function(task) { renderTask(task) });
 
+      function renderTask(task) {
+        var day = task.startDate.getDate()-startMonthDay;
+        var startTime = task.startDate.getHours()+task.startDate.getMinutes()/60-hoursOffset;
+
+        //Date difference booleanized on purpose; dayBleedOffset is 0 or 24.
+        //Only bleeds into next day; 24+ pom tasks not accounted for.
+        var dayBleedOffset = (task.endDate.getDate()-task.startDate.getDate() > 0)*24;
+        var endTime = task.endDate.getHours()+task.endDate.getMinutes()/60-hoursOffset + dayBleedOffset;
+        if (startTime < 0) {
+          day -= 1;
+          startTime += 24;
+          endTime += 24;
+          dayBleedOffset = 24;
+        }
         var top = (startTime/24*100).toFixed(2);
         //clamps to 0
         var bottom = Math.max((100-(endTime)/24*100),0).toFixed(2);
@@ -402,13 +446,13 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
           top = 0.00;
           //if, in unlikely even of 48+ pomodoro task, clamps to 0.
           bottom = Math.max((100-(endTime-dayBleedOffset)/24*100),0).toFixed(2);
-          $(columns[day+1]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%">'+task.category+'</div>');
+          // p("Second Bottom: " + bottom);
+          $(columns[day+1]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+'</div>');
         }
-      });
+      }
 
 
       function filterToWeek(startDate,tasks) {
-        // p(startDate);
         var weekStart = startDate.getTime(),
             weekEnd = new Date(weekStart);
         weekEnd.setDate(startDate.getDate()+7);
