@@ -14,27 +14,46 @@ Filter.prototype = {
 
 var filterTitles = "date time category description duration".split(' ');
 
-
-
 var lastYear = $.get('/2015');
 var thisYear = $.get('/2014');
+var journalRaw = $.get('/journal');
 
-$.when(lastYear,thisYear).done(function (lastYear,thisYear) {
+$.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw) {
   var data = lastYear[0] + "\n" + thisYear[0];
-
 // $.get("/2015",function (data) {
 
   var parsley = buildData(data);
   //This is... iffy. Not sure where to put it yet:
   var parsleyColors = generateParsleyColors(parsley,"category");
+  // var subcatColors = generateParsleyColors(parsley,"subcategory");
 
   var filters = "year month week tag category subcategory".split(' ');
   // p(parsley);
   var selectionObject = {}
 
   var currentDate = new Date();
+  //DELETE
+  // currentDate.setMonth(10);
+  // currentDate.setDate(29);
 
+  // var journalLines = journalRaw[0].split('\n');
+  // var journal = buildJournal(journalLines);
+
+  function buildJournal(lines) { 
+    var journal = { entries: [] };
+    lines.forEach(function(line) {
+      if (isDateLine(line)) {
+        journal.entries.push({ date: line })
+      }
+    })
+    return journal;
+    function isDateLine(line) {
+      return /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s?(January|February|March|April|May|June|July|August|September|October|November|December)\s?\d{1,2}/.test(line);
+    }
+  }
   
+  // p(journal.entries);
+
   //DELETE!
   // currentDate.setDate(currentDate.getDate()-1);
 
@@ -126,6 +145,7 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
     var labels = "year week month day".split(' ');
     // $calendar.append(div("cal-heading",true));
     $("#cal-heading").append(div(labels,false,"label"));
+    $("#cal-heading").append(div("task-details",true));
     $("#calendar").append(div("cal-nav",true))
     $("#calendar").append(div("cal-body",true));
 
@@ -139,9 +159,13 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       var base = "rgb(50,50,100)";
       var veryDark = "rgb(25,25,50)";
       var veryLight = "rgb(100,100,200)";
-      var gridLighter = "rgb(40,40,90)"
-      var gridDarker = "rgb(35,35,85)"
+      var gridLighter = "rgb(40,40,90)";
+      var gridDarker = "rgb(35,35,85)";
 
+      $("#task-details").css({
+        textAlign: "center"
+
+      });
       $("#cal-heading").css({
         boxSizing: "border-box",
         height: "30px",
@@ -170,11 +194,18 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         float: "left",
         background: gridDarker
       });
-      $(".mini-month").css({
+      $("#mini-epic-nav").css({
+        marginLeft: "5px",
+        display: "flex",
+        flexGrow: "0.5"
+      });
+      $(".mini-month, .mini-week, .mini-year").css({
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         alignSelf: "center",
         fontSize: "10px",
         flexGrow: "2",
-        // float: "left",
         marginRight: "1px",
         background: base,
         height: "80%"
@@ -187,22 +218,21 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       });
       $("#mini-month-nav").css({
         display: "flex",
-        flexGrow: "0.5",
+        flexGrow: "1",
         background: gridDarker
       });
-      $(".mini-week").css({
-        alignSelf: "center",
-        marginRight: "1px",
-        flexGrow: "2",
-        background: base,
-        height: "80%"
-      });
+
       $(".mini-week:first").css({
         marginLeft: "3px"
       })
       $(".mini-week:last").css({
         marginRight: "3px"
-      })
+      });
+      //bleh, this is order based
+      //need to redo ALL this CSS.
+      $(".current").css({
+        background: veryLight
+      });
       $(".label").css({
         float: "left",
         padding: "3px 10px",
@@ -240,6 +270,7 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       })
       $(".week-column").css({
         // position: "relative",
+        fontSize: "12px",
         boxSizing: "border-box",
         display: "flex",
         flexFlow: "column",
@@ -253,6 +284,7 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         borderWidth: "1px 1px 1px 1px"
       })
       $(".day-heading").css({
+        padding: "2px",
         // background: "blue",
         textAlign: "center"
       });
@@ -264,7 +296,7 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         // background: "orange",
         overflow: "hidden"
       });
-      $(".task").css({
+      $(".task, .subtask").css({
         // fontSize: "11px",
         boxSizing: "border-box",
         paddingTop: "1px",
@@ -273,8 +305,14 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         textAlign: "center",
         position: "absolute",
         // background: "green",
+        // width: "50%"
         width: "100%"
       });
+      $(".subtask").css({
+        width: "50%",
+        marginLeft: "50%"
+      });
+
       $(".day-row").css({
 
         paddingLeft: "3px",
@@ -306,15 +344,15 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       var startDay = 7*Math.floor((day-1)/7)+1;
       var copiedDate = new Date(date.getTime());
       copiedDate.setDate(startDay);
-      copiedDate.setHours(0);
-      copiedDate.setMinutes(0);
-      copiedDate.setSeconds(0);
-      copiedDate.setMilliseconds(0);
+      copiedDate.setHours(0,0,0,0);
       return copiedDate;
     }
 
     function dayName(num) {
       return "Sunday Monday Tuesday Wednesday Thursday Friday Saturday".split(' ')[num];
+    }
+    function monthNameShort(num) {
+      return "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(' ')[num]
     }
 
     function div(labelArray,noTitle,className) {
@@ -347,22 +385,77 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
 
       var navLabels = "- + R previous next today".split(' ');
       nav.append(div("nav-title",true));
-      nav.append('<div id="week-title">'+startDate.toLocaleDateString()+"</div>");
+      // nav.append('<div id="week-title">'+startDate.toLocaleDateString()+"</div>");
+      nav.append(div("mini-epic-nav",true));
       nav.append(div("mini-year-nav",true));
       nav.append(div("mini-month-nav",true));
 
+      var epicNav = $("#mini-epic-nav");
       var yearNav = $("#mini-year-nav");
       var monthNav = $("#mini-month-nav");
 
+
+      getUnique("year").sort().forEach(function(year) { 
+        epicNav.append('<div class="mini-year">'+year+'</div>')
+      });
+
       for (var i = 0; i < 12; i++) {
-        yearNav.append('<div class="mini-month"></div>');
+        yearNav.append('<div class="mini-month">'+monthNameShort(i)+'</div>');
       }
-
       for (var i = 0; i < 5; i++) {
-        monthNav.append('<div class="mini-week"></div>');
+        monthNav.append('<div class="mini-week">'+(i+1)+'</div>');
       }
+      var weekIndex = Math.floor((startDate.getDate()-1)/7)+1;
+      // p(weekIndex);
+      var monthIndex = startDate.getMonth()+1;
 
+      //Please stop calling getUnique().sort() for this crap.
+      var yearIndex = getUnique("year").sort().indexOf(startDate.getFullYear().toString())+1;
+
+      $("#mini-year-nav .mini-month:nth-child("+monthIndex+")").addClass("current");
+      $("#mini-month-nav .mini-week:nth-child("+weekIndex+")").addClass("current");
+      $("#mini-epic-nav .mini-year:nth-child("+yearIndex+")").addClass("current");
+  
       nav.append(div(navLabels,false,"nav-button"));
+
+      $(".mini-month").on("touch click", function() {
+        var index = $(".mini-month").index(this);
+        var newDate = new Date(startDate.getTime()); 
+        newDate.setMonth(index);
+        renderWeek(newDate,hoursOffset);
+        setStyles();
+      });
+      $(".mini-week").on("touch click", function() { 
+        var index = $(".mini-week").index(this);
+        var newDate = new Date(startDate.getTime());
+        var newWeekStart = (index)*7+1;
+        newDate.setDate(newWeekStart);
+        renderWeek(newDate,hoursOffset);
+        setStyles();
+      });
+
+      $(".mini-year").on("touch click", function() { 
+        var index = $(".mini-year").index(this);
+        var newDate = new Date(startDate.getTime());
+        var year = getUnique("year").sort();
+        // p(year);
+        // p(index);
+        newDate.setYear(year[index]);
+        renderWeek(newDate,hoursOffset);
+        setStyles();
+      });
+
+
+      // UGH! PLEASE fix.
+      // var originalBackground;
+      // $(".mini-month, .mini-week")
+      //   .on("mouseover", function() {
+      //     originalBackground = $(this).css("background");
+      //     $(this).css({ background: "orange"});
+      //   }).on("mouseout", function() { 
+      //     $(this).css({ background: originalBackground});
+      //   });
+
 
       $(".nav-button").on("touch click",function() {
         var label = this.id;
@@ -370,13 +463,28 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
           next: function() {
             var nextDate = new Date(startDate.getTime());
             nextDate.setDate(startDate.getDate()+7);
+            if (nextDate.getMonth() != startDate.getMonth()) {
+              nextDate.setDate(1);
+            }
+
             renderWeek(nextDate,hoursOffset);
             setStyles();
             // r(nextDate);
           },
           previous: function() {
+            var dateDiff = startDate.getDate()-7;
             var prevDate = new Date(startDate.getTime());
-            prevDate.setDate(startDate.getDate()-7);
+            prevDate.setDate(dateDiff);
+            //sets date to 29th if there is month bleed
+            //later, there will be a setting for this.
+            if (dateDiff < 0) { 
+              prevDate.setDate(29); 
+              //fixes feb
+              if (prevDate.getDate() == 1) {
+                prevDate.setMonth(1);
+                prevDate.setDate(21);
+              }
+            }
             renderWeek(prevDate,hoursOffset);
             setStyles();
             // r(prevDate);
@@ -410,7 +518,7 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       });
 
       for (var i = 0; i < 7; i++ ) {
-        body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' ('+(startMonthDay+i)+')</div><div class="day-tasks"></div></div>');
+        body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' '+(startDate.getMonth()+1)+'/'+(startMonthDay+i)+'</div><div class="day-tasks"></div></div>');
       }
       for (var j = 0; j < 48; j++ ) {
           $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2+hoursOffset)+"</div>");
@@ -420,15 +528,21 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
       //   // p(index);
       // });
       var columns = $(".day-tasks");
-      tasks.forEach(function(task) { renderTask(task) });
+      //parsley will keep sums later; need this now.
+      var weekSums = {};
+      // var weekSumsSubcat = {};
 
-      function renderTask(task) {
+      tasks.sort(function (a,b) { 
+        return a.startDate.getTime() - b.startDate.getTime();
+
+      });
+      tasks.forEach(function(task) { 
         var day = task.startDate.getDate()-startMonthDay;
         var startTime = task.startDate.getHours()+task.startDate.getMinutes()/60-hoursOffset;
 
         //Date difference booleanized on purpose; dayBleedOffset is 0 or 24.
         //Only bleeds into next day; 24+ pom tasks not accounted for.
-        var dayBleedOffset = (task.endDate.getDate()-task.startDate.getDate() > 0)*24;
+        var dayBleedOffset = (task.endDate.getDate()-task.startDate.getDate() != 0)*24;
         var endTime = task.endDate.getHours()+task.endDate.getMinutes()/60-hoursOffset + dayBleedOffset;
         if (startTime < 0) {
           day -= 1;
@@ -439,17 +553,68 @@ $.when(lastYear,thisYear).done(function (lastYear,thisYear) {
         var top = (startTime/24*100).toFixed(2);
         //clamps to 0
         var bottom = Math.max((100-(endTime)/24*100),0).toFixed(2);
+        
+        // if (task.category === "Watch" && weekSums[task.category] == 8) {
+        //   p(task.description);
+        //   p("top:"+top+", bottom: "+bottom);
+        //   p(startTime);
+        //   p(endTime);
+        //   p(dayBleedOffset);
+        // }
 
-        $(columns[day]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+'</div>');
-        // p(day);
+        weekSums[task.category] = weekSums[task.category] || 0;
+        weekSums[task.category] += parseInt(task.duration);
+        // weekSumsSubcat[task.subcategory] = weekSumsSubcat[task.subcategory] || 0;
+        // weekSumsSubcat[task.subcategory] += parseInt(task.duration);
+
+        drawBox(day);
+  
         if (endTime > 24 && day < 6) {
           top = 0.00;
           //if, in unlikely even of 48+ pomodoro task, clamps to 0.
           bottom = Math.max((100-(endTime-dayBleedOffset)/24*100),0).toFixed(2);
-          // p("Second Bottom: " + bottom);
-          $(columns[day+1]).append('<div class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+'</div>');
+          drawBox(day+1);
         }
-      }
+
+        function drawBox(day) {
+          $(columns[day]).append('<div data-i="'+task.index+'" class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+' '+weekSums[task.category]+'</div>');
+
+          // $(columns[day]).append('<div data-i="'+task.index+'" class="subtask" style="top:'+top+'%;bottom:'+bottom+'%;background:'+subcatColors[task.subcategory]+'">'+task.subcategory+' '+weekSumsSubcat[task.subcategory]+'</div>');
+        }
+      });
+
+      var hoverTimeout = null;
+      $(".task").on("mouseover", function() { 
+        clearTimeout(hoverTimeout);
+        var parsleyLine = parsley.lines[$(this).data('i')];
+        $("#task-details").text(parsleyLine);
+      });
+      $(".task").on("mouseout", function() {
+        hoverTimeout = setTimeout(function () {
+          $("#task-details").text('')
+        },1000);
+      });
+
+
+      //ToDo: get rid of this AWFUL way to get totals!
+      $(".week-column").each(function (index,item) { 
+        var currentDay = new Date(startDate.getTime());
+        currentDay.setDate(currentDay.getDate()+index);
+        var total = parsley.dayTotal(currentDay);
+        var target = parsley.dayTarget(currentDay);
+
+        // var ratio = total/target;
+        // var green = "rgb(50,100,100)";
+        //   purple = "rgb(50,150,75)";
+        //   orange = "rgb(150,100,0)";
+        //   red = "rgb(150,0,0)";
+
+        // var colorString = ratio == 1 ? green : ratio > 1 ? purple : ratio > 0.60 ? orange : red;
+
+        // $(this).append("<div style='text-align: center;background:"+colorString+"'>"+total+" / "+target+"</div>");
+        $(this).append("<div style='text-align: center'>"+total+"</div>");
+
+      });
 
 
       function filterToWeek(startDate,tasks) {

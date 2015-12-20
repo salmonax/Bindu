@@ -5,28 +5,60 @@
     var line, week;
     var parsleyData = {};
 
-    //WARNING: this should be a SORT after the data structure is decided
-    // it presumes dates are in reverse order!
-    // lines = lines.reverse(); 
-    // p('--- buildParsleyData --');
     parsleyData = buildParsleyStructure();
+    // p(parsleyData.targets);
 
     return parsleyData;
 
     function buildParsleyStructure() {
       // r("=== buildParsleyTotals() ===");
       var currentDate;
+      var parsley = { 
+        lines: lines, 
+        tasks: [], 
+        tags: {}, 
+        stats: {},
+        targets: {},
 
-      var parsley = { lines: lines, tasks: [], tags: {}, stats: {} };
+        dayTarget: function(dateWithOffset) {
+          var index = monthName(dateWithOffset.getMonth());
+          return parsley.targets[index];
+        },
+
+        dayTotal: function(dateWithOffset) {
+          var startDate = dateWithOffset;
+          var startTime = startDate.getTime();
+          var endDate = new Date(startTime);
+          endDate.setDate(endDate.getDate()+1);
+          var endTime = endDate.getTime();
+          //includes tasks with endDate within bounds
+          var filtered = this.tasks.filter(function (task) {
+            return (task.startDate.getTime() > startTime || task.endDate.getTime() > startTime) &&
+                    task.startDate.getTime() < endTime;
+          });
+          return filtered.reduce(function (sum, task) {
+            var bleedDuration = 0;
+            //adjusts for tasks that are out of bounds
+            if(task.startDate.getTime() < startTime) {
+              bleedDuration = (startTime-task.startDate.getTime())/(3600000)*2;
+            }
+            if(task.endDate.getTime() > endTime) {
+              bleedDuration = (task.endDate.getTime()-endTime)/(3600000)*2;
+            }
+            return sum + parseInt(task.duration)-bleedDuration;
+          },0);
+        }
+
+      };
 
       var statsKeys = "year month week tag category subcategory".split(' ');
       statsKeys.forEach(function(key) { parsley.stats[key] = {} });
       //NOTE: currently assumes tag definitions are at the top of file!
       //would be better to capture all tag defs FIRST, then re-iterate
 
-      // var eof = 200;
+      // var eof = 60;
       var eof = lines.length;
-      for (i = 0; i < eof; i++) {
+      for (var i = 0; i < eof; i++) {
         line = lines[i].replace(/\r?\n|\r/g,'');
         if (isComment(line)) { continue; }
         if (isDate(line)) {
@@ -36,9 +68,27 @@
           parsley.tasks.push(task);
           updateStats(task);
         } else if (isTarget(line)) {
-          //do target stuff
+          //syntax doesn't specify or even care about a YEAR yet, but should.
+          line = line.split(' ');
+          var interval = line[0];
+          var target = line[1];
+          //bleh, need to figure out how to both: 
+          //1. Always prioritize a month target over an arc definition
+          //2. Prioritize the top most value in the file, at least until I sort everything.
+          var arcNameIndex = "Beginning Middle End".split(' ').indexOf(interval)
+          if (arcNameIndex != -1 ) {
+            for (var j = 0; j < 4; j++) {
+              interval = monthName(j+arcNameIndex*4);
+              parsley.targets[interval] = parsley.targets[interval] || target;
+            }
+          } else {
+            // parsley.targets[interval] = parsley.targets[interval] || target;
+            parsley.targets[interval] = target;
+          }
         } else if (isTagDefinition(line)) {
           var tag = line[0];
+          //first tag in file gets priority
+          //later, there will be multiple passes
           parsley.tags[tag] = parsley.tags[tag] || line.slice(2,line.length);
           //unaccounted-for line
         }
@@ -109,7 +159,9 @@
           description = middle.join(' ');
         }
         //make sure to lose the toString() business on refactor
+        //... that is, if you can even figure out why they're there to begin with.
         return {
+          //lineIndex; rename.
           index: index,
           time: time,
           date: currentDate,
