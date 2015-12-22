@@ -265,6 +265,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         // p(index);
         newDate.setYear(year[index]);
         renderWeek(newDate,hoursOffset);
+  
       });
 
 
@@ -277,14 +278,6 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       //   }).on("mouseout", function() { 
       //     $(this).css({ background: originalBackground});
       //   });
-
-      $(".mini-month, .mini-week, .mini-year, .nav-button")
-        .on("mouseover", function() {
-          $(this).addClass('hovered')
-        }).on("mouseout",function() {
-          $(this).removeClass('hovered')
-        });
-
 
 
       $(".nav-button").on("touch click",function() {
@@ -365,45 +358,33 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       },0);
 
       body.append('<div id=week-totals></div>');
-      $("#week-totals").append("<div class=day-heading>Totals</div><div id=totals-body></div><div class=day-footer>"+weekTotal+"</div>");
+      $("#week-totals").append("<div class=day-heading>Totals</div>");
+      $("#week-totals").append("<div id=totals-body></div>")
+      $("#week-totals").append("<div class=day-footer>"+weekTotal+"</div>");
       
-      var totalsBody = $("#totals-body");
-      var parentHeight = parseInt(totalsBody.css("height"));
-      var hourPixels = parentHeight/(24*7);
-
       weekCats.forEach(function(name) {
         var poms = stats.category[name];
         // var divHeight = (stats.category[name]/weekTotal*100).toFixed(2) + "%";
-        var divHeight = Math.round(poms/2*hourPixels);
-
-        totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"px' class='total-item'>"+name+" "+poms+"</div>")
-        // totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"px' class='total-item'></div>")
+        var divHeight = poms*3 + "px";
+        $("#totals-body").append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"' class='total-item'>"+name+" "+poms+"</div>")
       });
   
-      // addTotalsBar(16*7,"16 hpd");
-      addTotalsBar(15*7,"15 hpd");
-      addTotalsBar(24*7,"24 hpd");
-      addTotalsBar(9*7,"18 ppd")
 
-      function addTotalsBar(hours,label) {
-        var height = Math.round(hours*hourPixels);
-        label = label || '';
-        totalsBody.append("<div class=totals-bar style='top:"+height+"px'>"+label+"</div>");
-      }
-
-
-
-      var columns = $(".day-tasks");
       for (var j = 0; j < 48; j++ ) {
-          columns.append("<div class=day-row>"+(j%2 ? '&nbsp':j/2+hoursOffset)+"</div>");
+          $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2+hoursOffset)+"</div>");
       }
 
-      //TODO: put weekSums in parsley
+      // $(".day-row").each(function(index,el) {
+      //   // p(index);
+      // });
+      var columns = $(".day-tasks");
+      //parsley will keep sums later; need this now.
       var weekSums = {};
       // var weekSumsSubcat = {};
 
       tasks.sort(function (a,b) { 
         return a.startDate.getTime() - b.startDate.getTime();
+
       });
       tasks.forEach(function(task) { 
         var day = task.startDate.getDate()-startMonthDay;

@@ -3,7 +3,7 @@ $veryDark: rgb(25,25,50)
 $veryLight: rgb(100,100,200)
 $gridLighter: rgb(40,40,90)
 $gridDarker: rgb(35,35,85)
-
+$darkOrange: #ff6600
 
 .total-item
   transform: rotate(180deg)
@@ -89,8 +89,9 @@ $gridDarker: rgb(35,35,85)
   border-style: dotted
   border-color: $veryLight
   border-width: 1px 1px 1px 0px
-#week-totals
   box-sizing: border-box
+#week-totals
+  flex-grow: 0.5
   font-size: 10px
   height: 804px
 #totals-body
@@ -115,12 +116,15 @@ $gridDarker: rgb(35,35,85)
   text-align: center
   position: absolute
   width: 100%
+  overflow: hidden
 .subtask
   width: 50%
   margin-left: 50%
 .day-row
   padding-left: 3px
   line-height: 16px
+.day-footer
+  font-size: 11px
 .week-column:nth-child(even) .day-row:nth-child(odd)
   background: $gridDarker
 .week-column:nth-child(even) .day-row:nth-child(even)
@@ -129,3 +133,16 @@ $gridDarker: rgb(35,35,85)
   background: $gridDarker
 .week-column:nth-child(odd) .day-row:nth-child(odd)
   background: $gridLighter
+.hovered
+  background: $darkOrange
+.mini-week, .mini-month, .mini-year, .nav-button
+  cursor: default
+  user-select: none
+  -moz-user-select: none
+.totals-bar
+  text-align: right
+  transform: rotate(180deg)
+  position: absolute
+  background: red
+  width: 100%
+  height: 1px
