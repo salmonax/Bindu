@@ -34,7 +34,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
   var currentDate = new Date();
   //DELETE
   currentDate.setMonth(11);
-  currentDate.setDate(20);
+  currentDate.setDate(21);
 
   // var journalLines = journalRaw[0].split('\n');
   // var journal = buildJournal(journalLines);
@@ -158,7 +158,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
     renderWeek(startDate,8);
     benchEnd = new Date().getTime();
     benchElapsed = benchEnd-benchStart;
-    p(benchElapsed);
+    // p(benchElapsed);
 
     function weekOf(date) {
       var day = date.getDate();
@@ -348,7 +348,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         action[label]();
         benchEnd = new Date().getTime();
         benchElapsed = benchEnd-benchStart;
-        r(benchElapsed);
+        // r(benchElapsed);
       });
 
       for (var i = 0; i < 7; i++ ) {
@@ -368,22 +368,68 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       $("#week-totals").append("<div class=day-heading>Totals</div><div id=totals-body></div><div class=day-footer>"+weekTotal+"</div>");
       
       var totalsBody = $("#totals-body");
+      var hoursInPomDay = 15;
       var parentHeight = parseInt(totalsBody.css("height"));
-      var hourPixels = parentHeight/(24*7);
+      var hourPixels = parentHeight/(hoursInPomDay*7);
+
+      var totalsMinHeight = 12;
+      var minHeightAdjustment = 0;
+      var heightMap = [];
+      // 1. Take care of basic case (ie. assume there are available divs)
+      // 2. Deal with case where there there is no space to redistribute
 
       weekCats.forEach(function(name) {
         var poms = stats.category[name];
-        // var divHeight = (stats.category[name]/weekTotal*100).toFixed(2) + "%";
         var divHeight = Math.round(poms/2*hourPixels);
+        minHeightAdjustment += Math.max(totalsMinHeight-divHeight,0);
+        // heightMap.push(divHeight);
+        divHeight = Math.max(divHeight,totalsMinHeight);
+        heightMap.push(divHeight);
+      })
+      var candidateDivs = true;
+      // for (var z = 0; z < 3; z++) {
+      while (minHeightAdjustment && candidateDivs) {
+        candidateDivs = false;
+        heightMap.forEach(function(height,index) {
+          if (height <= totalsMinHeight+1 || !minHeightAdjustment) { return }
+          candidateDivs = true;
+          heightMap[index] -= 1;
+          minHeightAdjustment -= 1;
+        });
+      }
 
-        totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"px' class='total-item'>"+name+" "+poms+"</div>")
-        // totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"px' class='total-item'></div>")
-      });
+      // var heightMapSum = heightMap.reduce(function(sum,item) { return sum += item });
+
   
+      // p(heightMap);
+      // p("heightMapSum: " + heightMapSum);
+      // p("candidateDivs: " + candidateDivs);
+
+
+      weekCats.forEach(function(name,i) {
+        var poms = stats.category[name];
+        totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+heightMap[i]+"px' class='total-item'>"+name+" "+poms+"</div>");
+      });
+      // p("week total: " + Math.round(weekTotal/2*hourPixels));
+      // p("adjustment total: " + minHeightAdjustment);
+      // var singleAdjust = Math.floor(minHeightAdjustment/adjustedDivs);
+      // var adjustRemainder = minHeightAdjustment%adjustedDivs;
+      // p("adjusted divs: "+adjustedDivs);
+      // p("total divs: " + weekCats.length);
+      // p("single: "+singleAdjust);
+      // p("remainder: "+adjustRemainder);
+      // p('');
+
+      $(".total-item").each(function() {
+        var prevHeight = parseInt($(this).css("height"));
+        
+      })
       // addTotalsBar(16*7,"16 hpd");
-      addTotalsBar(15*7,"15 hpd");
-      addTotalsBar(24*7,"24 hpd");
-      addTotalsBar(9*7,"18 ppd")
+      // addTotalsBar(15*7,"15 hpd");
+      // addTotalsBar(24*7,"24 hpd");
+      // addTotalsBar(9*7,"18 ppd");
+      // p(weekTotal);
+      addTotalsBar(weekTotal/2);
 
       function addTotalsBar(hours,label) {
         var height = Math.round(hours*hourPixels);
