@@ -69,7 +69,7 @@ __END__
     =yield
     %script{src: "/javascripts/parsley.js"}
   %script{src: "/javascripts/lagom.js"}
-
+  %link{rel:"stylesheet",href:"/stylesheets/lagom.css"}
 :css
   html, body {
     margin: 0; 

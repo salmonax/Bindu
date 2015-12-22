@@ -152,192 +152,13 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
     // div("previous");
     var startDate = startDate || weekOf(currentDate);
 
+    var benchStart, benchEnd, benchElapsed;
+
+    benchStart = new Date().getTime();
     renderWeek(startDate,8);
-    setStyles();
-
-    function setStyles() {
-      var base = "rgb(50,50,100)";
-      var veryDark = "rgb(25,25,50)";
-      var veryLight = "rgb(100,100,200)";
-      var gridLighter = "rgb(40,40,90)";
-      var gridDarker = "rgb(35,35,85)";
-
-      $("#task-details").css({
-        textAlign: "center"
-
-      });
-      $("#cal-heading").css({
-        boxSizing: "border-box",
-        height: "30px",
-        paddingTop: "5px",
-        paddingLeft: "5px",
-        background: veryDark,
-        overflow: "auto"
-      });
-      $("#calendar").css({
-        // display: "flex",
-        // flexFlow: "column"
-        // position: "absolute",
-        top: "0px",
-        bottom: "0px",
-        left: "0px",
-        right: "0px",
-        background: base,
-        overflow: "auto"
-      });
-      $("#week-title").css({
-        float: "left"
-      });
-      $("#mini-year-nav").css({
-        display: "flex",
-        flexGrow: "2",
-        float: "left",
-        background: gridDarker
-      });
-      $("#mini-epic-nav").css({
-        marginLeft: "5px",
-        display: "flex",
-        flexGrow: "0.5"
-      });
-      $(".mini-month, .mini-week, .mini-year").css({
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        alignSelf: "center",
-        fontSize: "10px",
-        flexGrow: "2",
-        marginRight: "1px",
-        background: base,
-        height: "80%"
-      });
-      $(".mini-month:nth-child(4n)").css({
-        marginRight: "5px"
-      });
-      $(".mini-month:first").css({
-        marginLeft: "5px"
-      });
-      $("#mini-month-nav").css({
-        display: "flex",
-        flexGrow: "1",
-        background: gridDarker
-      });
-
-      $(".mini-week:first").css({
-        marginLeft: "3px"
-      })
-      $(".mini-week:last").css({
-        marginRight: "3px"
-      });
-      //bleh, this is order based
-      //need to redo ALL this CSS.
-      $(".current").css({
-        background: veryLight
-      });
-      $(".label").css({
-        float: "left",
-        padding: "3px 10px",
-        margin: "0 1px",
-        background: base
-      });
-      $("#cal-nav").css({
-        display: "flex",
-        // background: "red",
-        background: gridDarker,
-        overflow: "auto"
-      });
-      $(".nav-button").css({
-        padding: "0px 5px",
-        textAlign: "center",
-        margin: "1px",
-        minWidth: "20px",
-        background: veryLight,
-        float: "right"
-      })
-      $("#cal-body").css({
-        // marginTop: "30px",
-        boxSizing: "border-box",
-        // position: "absolute",
-        // background: "red",
-        margin: "10px",
-        display: "flex",
-        flexFlow: "row",
-        top: "0px",
-        bottom: "0px",
-        left: "0px",
-        right: "0px",
-        // height: "100%",
-        // overflow: "auto"
-      })
-      $(".week-column").css({
-        // position: "relative",
-        fontSize: "12px",
-        boxSizing: "border-box",
-        display: "flex",
-        flexFlow: "column",
-        flexGrow: "2",
-        height: "100%",
-        borderStyle: "dotted",
-        borderColor: veryLight,
-        borderWidth: "1px 1px 1px 0px",
-      });
-      $(".week-column:first").css({
-        borderWidth: "1px 1px 1px 1px"
-      })
-      $(".day-heading").css({
-        padding: "2px",
-        // background: "blue",
-        textAlign: "center"
-      });
-      $(".day-tasks").css({
-        // opacity: 0.6,
-        fontSize: "11px",
-        position: "relative",
-        height: "100%",
-        // background: "orange",
-        overflow: "hidden"
-      });
-      $(".task, .subtask").css({
-        // fontSize: "11px",
-        boxSizing: "border-box",
-        paddingTop: "1px",
-        paddingRight: "18px",
-        margin: "0px 0px 1px 18px",
-        textAlign: "center",
-        position: "absolute",
-        // background: "green",
-        // width: "50%"
-        width: "100%"
-      });
-      $(".subtask").css({
-        width: "50%",
-        marginLeft: "50%"
-      });
-
-      $(".day-row").css({
-
-        paddingLeft: "3px",
-        lineHeight: "16px"
-      });
-      $(".week-column:nth-child(even) .day-row:nth-child(odd)").css({
-        background: gridDarker
-      });
-      
-      $(".week-column:nth-child(even) .day-row:nth-child(even)").css({
-        background: gridLighter,
-      //   borderStyle: "dotted",
-      //   borderWidth: "0px 0px 1px 0px",
-      //   borderColor: veryLight
-      });
-      $(".week-column:nth-child(odd) .day-row:nth-child(even)").css({
-        background: gridDarker,
-        // borderStyle: "dotted",
-        // borderWidth: "0px 0px 1px 0px",
-        // borderColor: veryLight
-      });
-      $(".week-column:nth-child(odd) .day-row:nth-child(odd)").css({
-        background: gridLighter
-      });
-    }
+    benchEnd = new Date().getTime();
+    benchElapsed = benchEnd-benchStart;
+    p(benchElapsed);
 
     function weekOf(date) {
       var day = date.getDate();
@@ -378,6 +199,8 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       var body = $("#cal-body");
       var nav = $("#cal-nav");
       var tasks = filterToWeek(startDate);
+      var stats = createFilteredStats(tasks);
+      // p(stats);
       //TODO: ugh, please refactor this!
 
       body.empty();
@@ -423,7 +246,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         var newDate = new Date(startDate.getTime()); 
         newDate.setMonth(index);
         renderWeek(newDate,hoursOffset);
-        setStyles();
+  
       });
       $(".mini-week").on("touch click", function() { 
         var index = $(".mini-week").index(this);
@@ -431,7 +254,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         var newWeekStart = (index)*7+1;
         newDate.setDate(newWeekStart);
         renderWeek(newDate,hoursOffset);
-        setStyles();
+  
       });
 
       $(".mini-year").on("touch click", function() { 
@@ -442,7 +265,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         // p(index);
         newDate.setYear(year[index]);
         renderWeek(newDate,hoursOffset);
-        setStyles();
+  
       });
 
 
@@ -458,6 +281,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
 
 
       $(".nav-button").on("touch click",function() {
+        benchStart = new Date().getTime();
         var label = this.id;
         var action = {
           next: function() {
@@ -468,7 +292,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
             }
 
             renderWeek(nextDate,hoursOffset);
-            setStyles();
+      
             // r(nextDate);
           },
           previous: function() {
@@ -486,40 +310,66 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
               }
             }
             renderWeek(prevDate,hoursOffset);
-            setStyles();
+      
             // r(prevDate);
           },
           today: function() {
             renderWeek(weekOf(currentDate),hoursOffset);
-            setStyles();
+      
           },
           '+': function() {
             hoursOffset += 1;
             //TODO: please fix +24 and -0 offsets.
             hoursOffset = Math.min(hoursOffset,23);
             renderWeek(startDate,hoursOffset);
-            setStyles();
+      
             // r(hoursOffset);
           },
           '-': function() {
             hoursOffset -= 1;
             hoursOffset = Math.max(hoursOffset,0);
             renderWeek(startDate,hoursOffset);
-            setStyles();
+      
             // r(hoursOffset);
           },
           R: function() {
             hoursOffset = 0;
             renderWeek(startDate,hoursOffset);
-            setStyles();
+      
           }
         };
         action[label]();
+        benchEnd = new Date().getTime();
+        benchElapsed = benchEnd-benchStart;
+        r(benchElapsed);
       });
 
       for (var i = 0; i < 7; i++ ) {
         body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' '+(startDate.getMonth()+1)+'/'+(startMonthDay+i)+'</div><div class="day-tasks"></div></div>');
       }
+
+      var weekCats = Object.keys(stats.category);
+      weekCats.sort(function (a,b) {
+        return stats.category[b] - stats.category[a];
+      });
+
+      var weekTotal = weekCats.reduce(function(sum,item) { 
+        return sum + stats.category[item]; 
+      },0);
+
+      body.append('<div id=week-totals></div>');
+      $("#week-totals").append("<div class=day-heading>Totals</div>");
+      $("#week-totals").append("<div id=totals-body></div>")
+      $("#week-totals").append("<div class=day-footer>"+weekTotal+"</div>");
+      
+      weekCats.forEach(function(name) {
+        var poms = stats.category[name];
+        // var divHeight = (stats.category[name]/weekTotal*100).toFixed(2) + "%";
+        var divHeight = poms*3 + "px";
+        $("#totals-body").append("<div style='background:"+parsleyColors[name]+";height:"+divHeight+"' class='total-item'>"+name+" "+poms+"</div>")
+      });
+  
+
       for (var j = 0; j < 48; j++ ) {
           $(".day-tasks").append("<div class=day-row>"+(j%2 ? '&nbsp':j/2+hoursOffset)+"</div>");
       }
@@ -612,7 +462,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         // var colorString = ratio == 1 ? green : ratio > 1 ? purple : ratio > 0.60 ? orange : red;
 
         // $(this).append("<div style='text-align: center;background:"+colorString+"'>"+total+" / "+target+"</div>");
-        $(this).append("<div style='text-align: center'>"+total+"</div>");
+        $(this).append("<div class='day-footer' style='text-align: center'>"+total+"</div>");
 
       });
 
