@@ -21,6 +21,7 @@ class Journal
     @@text = DocRipper::TextRipper.new(@@filename).text
               .gsub(/\u00e2\u0080(\u009C|\u009D)/,'"')
               .gsub("\u00e2\u0080\u00a6","...")
+              # .gsub(/[^\n]\n\w/m,'')
     puts "Done!"
   end
   def self.text
@@ -68,6 +69,7 @@ __END__
   %body
     =yield
     %script{src: "/javascripts/parsley.js"}
+    %script{src: "/javascripts/journal.js"}
   %script{src: "/javascripts/lagom.js"}
   %link{rel:"stylesheet",href:"/stylesheets/lagom.css"}
 :css

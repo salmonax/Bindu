@@ -19,6 +19,7 @@
         tags: {}, 
         stats: {},
         targets: {},
+        media: {}, 
 
         dayTarget: function(dateWithOffset) {
           var index = monthName(dateWithOffset.getMonth());
@@ -32,6 +33,7 @@
           endDate.setDate(endDate.getDate()+1);
           var endTime = endDate.getTime();
           //includes tasks with endDate within bounds
+          //(Note: this is still needed in renderWeek())
           var filtered = this.tasks.filter(function (task) {
             return (task.startDate.getTime() > startTime || task.endDate.getTime() > startTime) &&
                     task.startDate.getTime() < endTime;
@@ -56,7 +58,7 @@
       //NOTE: currently assumes tag definitions are at the top of file!
       //would be better to capture all tag defs FIRST, then re-iterate
 
-      // var eof = 60;
+      // var eof = 150;
       var eof = lines.length;
       for (var i = 0; i < eof; i++) {
         line = lines[i].replace(/\r?\n|\r/g,'');
@@ -113,7 +115,9 @@
             category,
             subcategory,
             description,
-            duration;
+            duration,
+            medium = null,
+            progress = null;
 
         var split = line.split(/\s+|\t+/);
         time = split[0];
@@ -122,14 +126,12 @@
         tag = checkTag(split[1]);
         var middle = split.slice((tag?2:1),split.length-1).join(' ').split(':');
         tag = tag || "None";
-
-
+        //TODO: uh oh... it's splitting the date for every task?!
         var splitDate = currentDate.split('/'),
             year = splitDate[2],
             month = splitDate[0],
             day = splitDate[1];
     
-
         var splitEndHour = time.split('.'),
             endHours = splitEndHour[0],
             endMinutes = splitEndHour[1] ? "30":"00";
@@ -140,24 +142,21 @@
             startMinutes = splitStartHour[1] ? "30":"00";
 
         var endDate = new Date(year, parseInt(month)-1, day, endHours, endMinutes);
-        // p(year+","+month+","+day+","+endHours+","+endMinutes);
-        // p(endDate)
 
-        // p(startMinutes);
-  
         var startDate = new Date(year, parseInt(month)-1, day, startHours,startMinutes);
+        /* baseDate is the date marked in the pomsheet */
         var baseDate = new Date(year,parseInt(month)-1,day);
 
         if (middle.length >= 2) {
           categories = middle[0].split(/,\s?/);
-          category = categories[0];
-          subcategory = categories[1] || "None";
-
-          description = middle.slice(1,middle.length).join(' ');
+          category = processRocket(categories[0].trim());
+          subcategory = categories[1] ? processRocket(categories[1].trim()) : "None";
+          description = middle.slice(1,middle.length).join(' ').trim();
         } else {
-          category = "None";
-          description = middle.join(' ');
+          category = subcategory = "None";
+          description = middle.join(' ').trim();
         }
+        description = processRocket(description);
         //make sure to lose the toString() business on refactor
         //... that is, if you can even figure out why they're there to begin with.
         return {
@@ -177,7 +176,8 @@
           year: endDate.getFullYear().toString(),
           month: monthName(endDate.getMonth()),
           week: weekNum(endDate.getDate()),
-
+          medium: medium,
+          progress: progress
         }
 
         function checkTag(maybeTag) {
@@ -188,15 +188,33 @@
           return isTag ? maybeTag : null;
         }
 
+        function processRocket(text) {
+          if (text && text.indexOf("=>") == -1 && text.indexOf("->") == -1) {
+            return text;
+          }
+          if (text) {
+            var type = text.indexOf("=>") > -1 ? "output" : "input";
+            var set = text.split(/[-=]>/);
+            var item = set[0];
+            var value = set[1];
+            var goal;
+            if (value.indexOf("%") != -1) { goal = 100 }
+            parsley.media[item] = parsley.media[item] || {}
+            if (goal) { parsley.media[item]["goal"] = goal }
+            medium = item;
+            progress = parseInt(value);
+          }
+        }
       }
 
     }
 
+    //TODO: This might be more useful as an actual number.
+    //(The only reason it's like this was for the filter browser.)
     function weekNum(day) {
       var bracket = Math.floor((day-1)/7);
       // p(day + " is Week " + (bracket+1));
       return bracket < 4 ? "Week " + (bracket+1) :"Week Burst"; 
-
     }
 
     function monthName(index) {

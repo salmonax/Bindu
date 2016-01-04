@@ -1,6 +1,8 @@
 # A sample Guardfile
 # More info at https://github.com/guard/guard#readme
 
+ignore /node_modules/, /.git/, /.sass-cache/
+
 guard 'livereload' do
   watch(%r{.+\.rb})
   watch(%r{views/.+\.(erb|haml|slim)$})

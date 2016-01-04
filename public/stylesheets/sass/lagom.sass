@@ -74,8 +74,8 @@ $darkOrange: #ff6600
   float: right
 #cal-body
   margin: 10px
-  display: flex
-  flex-flow: row
+  // display: flex
+  // flex-flow: row
   top: 0px
   bottom: 0px
   left: 0px
@@ -85,13 +85,16 @@ $darkOrange: #ff6600
   display: flex
   flex-flow: column
   flex-grow: 2
+  float: left
+  width: 12.9%
   height: 100%
   border-style: dotted
   border-color: $veryLight
   border-width: 1px 1px 1px 0px
   box-sizing: border-box
 #week-totals
-  flex-grow: 0.5
+  width: 9.68%
+  flex-shrink: 0
   font-size: 10px
   height: 804px
 #totals-body
@@ -124,6 +127,9 @@ $darkOrange: #ff6600
   padding-left: 3px
   line-height: 16px
 .day-footer
+  border-style: dotted
+  border-width: 0px 0px 1px 0px
+  border-color: $veryLight
   font-size: 11px
 .week-column:nth-child(even) .day-row:nth-child(odd)
   background: $gridDarker
@@ -146,3 +152,16 @@ $darkOrange: #ff6600
   background: red
   width: 100%
   height: 1px
+.dosage
+  font-size: 11px
+.timebar-cat
+  font-size: 12px
+  background: $gridDarker
+table, td, th
+  border-collapse: collapse
+  font-size: 12px
+  border-style: dotted
+  border-width: 1px
+  border-color: $veryLight
+table
+  width: 100%

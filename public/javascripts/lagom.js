@@ -15,7 +15,7 @@ Filter.prototype = {
 var filterTitles = "date time category description duration".split(' ');
 
 var lastYear = $.get('/2015');
-var thisYear = $.get('/2014');
+var thisYear = $.get('/2013');
 var journalRaw = $.get('/journal');
 
 $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw) {
@@ -23,6 +23,9 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
 // $.get("/2015",function (data) {
 
   var parsley = buildData(data);
+  // p(parsley.media);
+  // p(parsley.tasks);
+
   //This is... iffy. Not sure where to put it yet:
   var parsleyColors = generateParsleyColors(parsley,"category");
   // var subcatColors = generateParsleyColors(parsley,"subcategory");
@@ -31,26 +34,19 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
   // p(parsley);
   var selectionObject = {}
 
+  //TODO: make sure renderWeek uses hoursOffset to determine what "today" is!!
   var currentDate = new Date();
-  //DELETE
-  currentDate.setMonth(11);
-  currentDate.setDate(21);
+  // DELETE
+  // currentDate.setMonth(11);
+  // currentDate.setDate(8);
+  // currentDate.setYear(2015);
 
-  // var journalLines = journalRaw[0].split('\n');
-  // var journal = buildJournal(journalLines);
+  
 
-  function buildJournal(lines) { 
-    var journal = { entries: [] };
-    lines.forEach(function(line) {
-      if (isDateLine(line)) {
-        journal.entries.push({ date: line })
-      }
-    })
-    return journal;
-    function isDateLine(line) {
-      return /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s?(January|February|March|April|May|June|July|August|September|October|November|December)\s?\d{1,2}/.test(line);
-    }
-  }
+  var journalLines = journalRaw[0].split("\n");
+  var journal = buildJournal(journalLines);
+
+
   
   // p(journal.entries);
 
@@ -62,10 +58,6 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
 
   loadPomsheet(data);
   renderFilters();
-
- 
-
-  // p(parsley.tasks);
 
 
   $(".filter").mouseup(function() {
@@ -142,7 +134,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
   function renderCalendar(startDate) {
     // var $calendar = $("#pomsheet");
     $("#calendar").append(div("cal-heading",true));
-    var labels = "year week month day".split(' ');
+    var labels = "weeklies timebar treemap".split(' ');
     // $calendar.append(div("cal-heading",true));
     $("#cal-heading").append(div(labels,false,"label"));
     $("#cal-heading").append(div("task-details",true));
@@ -153,12 +145,32 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
     var startDate = startDate || weekOf(currentDate);
 
     var benchStart, benchEnd, benchElapsed;
+    //EXTRACT INTO OPTIONS:
+    var hoursOffset = 8
 
     benchStart = new Date().getTime();
-    renderWeek(startDate,8);
+    // renderWeek(startDate,hoursOffset);
+    renderTimebar();
     benchEnd = new Date().getTime();
     benchElapsed = benchEnd-benchStart;
     // p(benchElapsed);
+
+    $("#cal-heading .label").on("touch click",function() {
+      var label = this.id;
+      var action = {
+        weeklies: function() {
+          renderWeek(startDate,hoursOffset);
+        },
+        timebar: function() {
+          renderTimebar();
+        },
+        treemap: function() {
+          renderTreemap();
+        }
+
+      }
+      action[label]();
+    });
 
     function weekOf(date) {
       var day = date.getDate();
@@ -187,6 +199,81 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       return html;
     }
 
+    function renderTimebar() {
+      benchStart = new Date().getTime();
+      $("#cal-body").empty();
+      // $("#cal-nav").empty();
+
+      var table = $("<table>").addClass('timebar');
+      var row,catCol;
+      var headingRow = "<td style='white-space:nowrap;width:1px;'>Categories</td>"
+      for (i = 0; i < 12; i++) {
+        headingRow += "<td colspan=5>"+monthNameShort(i)+"</td>";
+      }
+
+      table.append(headingRow);
+      var gridStats = buildGridStats();
+      var uniques = getUnique("category");
+      uniques = uniques.sort(function(a,b) {
+        return parsley.stats.category[b]-parsley.stats.category[a];
+      });
+      function d2h(d) {return d.toString(16);}
+      uniques.forEach(function(category,i) {
+        // if (category != "Bindu") { return; }
+        // if (!category) { p(i); }
+        var dayCols ='';
+        var catColor = parsleyColors[category];
+        var displayNum;
+        for (var i = 0; i < 60; i++) {
+          displayNum = d2h(parseInt((gridStats[category][i+1]/6).toFixed(0)));
+          dayCols += gridStats[category][i+1] ? "<td style='background:"+catColor+"'>"+displayNum+"</td>" : "<td>&nbsp&nbsp</td>";
+          // dayCols += gridStats[category][i+1] ? "<td style='background:"+catColor+"'>" : "<td>";
+          // dayCols += "&nbsp</td>";
+        }
+        row = $("<tr>");
+        var catString = category.replace(' ','&nbsp')+"&nbsp("+parsley.stats["category"][category]+")";
+        
+        catCol = $("<td style='background:"+catColor+"'>"+catString+"</td>");
+        row = row.append(catCol).append(dayCols);
+
+        // $("#cal-body").append("<div class=timebar-cat>"+category+"</div>");
+        table.append(row);
+      });
+      $("#cal-body").append(table);
+      benchEnd = new Date().getTime();
+      benchElapsed = benchEnd-benchStart;
+      // r("Timebar time: " + benchElapsed);
+
+      function buildGridStats() {
+        var gridStats = {}
+        parsley.tasks.forEach(function(task) {
+          // if (task.category != 'Bindu') { return; }
+          var cat = task.category
+          gridStats[cat] = gridStats[cat] || {};
+          var monthDay = task.baseDate.getDate();
+          var month = task.baseDate.getMonth();
+          var yearWeek = weekNum(monthDay)+5*month;
+          // p(task.baseDate.toLocaleDateString());
+          // p(yearWeek);
+          gridStats[cat][yearWeek] = gridStats[cat][yearWeek] || 0;
+          //TODO: investigate parsley's string property bullshit
+          gridStats[cat][yearWeek] += parseInt(task.duration);
+          
+          // p(task.baseDate.toLocaleDateString(),true);
+          // p(" "+yearWeek);
+        });
+        // p(gridStats['Bindu']);
+        return gridStats;
+      }
+      function weekNum(monthDay) {
+        return Math.floor((monthDay-1)/7)+1;
+      }
+    }
+
+    function renderTreemap() {
+      p("OH BOY!");
+    }
+
     function renderWeek(startDate,hoursOffset) {
       if (hoursOffset) { 
         startDate.setHours(hoursOffset); 
@@ -194,14 +281,16 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         hoursOffset = 0;
       }
 
-      var startMonthDay = startDate.getDate();
-      var startDay = startDate.getDay();
-      var body = $("#cal-body");
-      var nav = $("#cal-nav");
-      var tasks = filterToWeek(startDate);
-      var stats = createFilteredStats(tasks);
+      var startMonthDay = startDate.getDate(),
+          startDay = startDate.getDay(),
+          daysInMonth = new Date(startDate.getFullYear(),startDate.getMonth()+1,0).getDate(),
+          body = $("#cal-body"),
+          nav = $("#cal-nav"),
+          tasks = filterToWeek(startDate),
+          stats = createFilteredStats(tasks);
       // p(stats);
       //TODO: ugh, please refactor this!
+
 
       body.empty();
       nav.empty();
@@ -286,7 +375,6 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         });
 
 
-
       $(".nav-button").on("touch click",function() {
         benchStart = new Date().getTime();
         var label = this.id;
@@ -352,7 +440,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       });
 
       for (var i = 0; i < 7; i++ ) {
-        body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+' '+(startDate.getMonth()+1)+'/'+(startMonthDay+i)+'</div><div class="day-tasks"></div></div>');
+        body.append('<div class="week-column"><div class="day-heading">'+dayName((startDay+i)%7)+'&nbsp'+(startDate.getMonth()+1)+'/'+(startMonthDay+i)+'</div><div class="day-tasks"></div></div>');
       }
 
       var weekCats = Object.keys(stats.category);
@@ -372,7 +460,10 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       var parentHeight = parseInt(totalsBody.css("height"));
       var hourPixels = parentHeight/(hoursInPomDay*7);
 
-      var totalsMinHeight = 12;
+      //normally 12
+      var totalsMinHeight = 0;
+      //normally superfluous
+      var totalsMinLabelHeight = 10;
       var minHeightAdjustment = 0;
       var heightMap = [];
       // 1. Take care of basic case (ie. assume there are available divs)
@@ -408,7 +499,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
 
       weekCats.forEach(function(name,i) {
         var poms = stats.category[name];
-        totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+heightMap[i]+"px' class='total-item'>"+name+" "+poms+"</div>");
+        totalsBody.append("<div style='background:"+parsleyColors[name]+";height:"+heightMap[i]+"px' class='total-item'>"+(heightMap[i] >= totalsMinLabelHeight ? name+" "+poms : '')+"</div>");
       });
       // p("week total: " + Math.round(weekTotal/2*hourPixels));
       // p("adjustment total: " + minHeightAdjustment);
@@ -453,6 +544,9 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       });
       tasks.forEach(function(task) { 
         var day = task.startDate.getDate()-startMonthDay;
+        //quicky way to catch month-ends
+        if (day < 0) { day += daysInMonth; }
+
         var startTime = task.startDate.getHours()+task.startDate.getMinutes()/60-hoursOffset;
 
         //Date difference booleanized on purpose; dayBleedOffset is 0 or 24.
@@ -482,16 +576,16 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         // weekSumsSubcat[task.subcategory] = weekSumsSubcat[task.subcategory] || 0;
         // weekSumsSubcat[task.subcategory] += parseInt(task.duration);
 
-        drawBox(day);
+        drawTaskBox(day);
   
         if (endTime > 24 && day < 6) {
           top = 0.00;
           //if, in unlikely even of 48+ pomodoro task, clamps to 0.
           bottom = Math.max((100-(endTime-dayBleedOffset)/24*100),0).toFixed(2);
-          drawBox(day+1);
+          drawTaskBox(day+1);
         }
 
-        function drawBox(day) {
+        function drawTaskBox(day) {
           $(columns[day]).append('<div data-i="'+task.index+'" class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors[task.category]+'">'+task.category+' '+weekSums[task.category]+'</div>');
 
           // $(columns[day]).append('<div data-i="'+task.index+'" class="subtask" style="top:'+top+'%;bottom:'+bottom+'%;background:'+subcatColors[task.subcategory]+'">'+task.subcategory+' '+weekSumsSubcat[task.subcategory]+'</div>');
@@ -528,6 +622,14 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
 
         // $(this).append("<div style='text-align: center;background:"+colorString+"'>"+total+" / "+target+"</div>");
         $(this).append("<div class='day-footer' style='text-align: center'>"+total+"</div>");
+        $(this).append("<div class='dosage'></div>");
+        dosageBox = $('.dosage:last');
+        dosageItems = journal.dayDosageItems(currentDay);
+        dosageItems.forEach(function(item) { 
+          dosageBox.append(item + '<br>');
+        });
+
+
 
       });
 
@@ -625,7 +727,7 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
     // p(tasks);
     tasks = tasks || parsley.tasks;
     var baseArray = tasks.map(function(task) { return task[key]; });
-    return baseArray.filter(function(v,i) { return baseArray.indexOf(v) == i})
+    return baseArray.filter(function(v,i) { return baseArray.indexOf(v) == i && v})
   }
   function clearFilters(exclusions) {
     filters.forEach(function (title) { 
