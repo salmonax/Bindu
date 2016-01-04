@@ -1,76 +1,46 @@
-var Filter = function(title,parsley) {
-  this.title = title
-  this.parsley = parsley;
-}
-
-Filter.prototype = {
-  render: function render(container) {
-
-  },
-  populate: function populate(items) {
-
-  }
-}
-
-var filterTitles = "date time category description duration".split(' ');
-
-var lastYear = $.get('/2015');
-var thisYear = $.get('/2013');
-var journalRaw = $.get('/journal');
+var lastYear = $.get('/2015'),
+    thisYear = $.get('/2013'),
+    journalRaw = $.get('/journal');
 
 $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw) {
   var data = lastYear[0] + "\n" + thisYear[0];
 // $.get("/2015",function (data) {
 
-  var parsley = buildData(data);
-  // p(parsley.media);
-  // p(parsley.tasks);
-
-  //This is... iffy. Not sure where to put it yet:
-  var parsleyColors = generateParsleyColors(parsley,"category");
-  // var subcatColors = generateParsleyColors(parsley,"subcategory");
-
-  var filters = "year month week tag category subcategory".split(' ');
-  // p(parsley);
-  var selectionObject = {}
+  //parsleyColors is... iffy. Not sure where to put it yet:
+  var parsley = buildData(data),
+      parsleyColors = generateParsleyColors(parsley,"category");
+      //subcatColors = generateParsleyColors(parsley,"subcategory");
+  var filters = "year month week tag category subcategory".split(' '),
+      selectionObject = {};
 
   //TODO: make sure renderWeek uses hoursOffset to determine what "today" is!!
   var currentDate = new Date();
-  // DELETE
+  //Quicky currentDate() debug:
   // currentDate.setMonth(11);
   // currentDate.setDate(8);
   // currentDate.setYear(2015);
 
-  
-
-  var journalLines = journalRaw[0].split("\n");
-  var journal = buildJournal(journalLines);
-
-
-  
-  // p(journal.entries);
-
-  //DELETE!
-  // currentDate.setDate(currentDate.getDate()-1);
-
+  var journalLines = journalRaw[0].split("\n"),
+      journal = buildJournal(journalLines);  
 
   renderCalendar();
 
+  //TODO: figure out where to put these
   loadPomsheet(data);
   renderFilters();
 
-
+  //TODO: parentFilter selection preserves child selections
   $(".filter").mouseup(function() {
-    var selection = [];
-    var key = this.id.replace('-filter','');
+    var selection = [],
+        key = this.id.replace('-filter',''),
+        parentFilters = filters.slice(0,filters.indexOf(key)+1);
+
     $('#'+this.id).children('option:selected').each(function() {
-      //this assumes that a count is placed after the item text
+      /* Removes pom-count in parens after item text. */
       var itemText = $(this).text().replace(/\s\(\d+\)$/,'');
       selection.push(itemText);
     });
 
-    
-    var parentFilters = filters.slice(0,filters.indexOf(key)+1);
 
     clearSelectionObject(parentFilters);
     selectionObject[key] = selection;
@@ -149,8 +119,8 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
     var hoursOffset = 8
 
     benchStart = new Date().getTime();
-    // renderWeek(startDate,hoursOffset);
-    renderTimebar();
+    renderWeek(startDate,hoursOffset);
+    // renderTimebar();
     benchEnd = new Date().getTime();
     benchElapsed = benchEnd-benchStart;
     // p(benchElapsed);
@@ -538,10 +508,11 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
       //TODO: put weekSums in parsley
       var weekSums = {};
       // var weekSumsSubcat = {};
-
       tasks.sort(function (a,b) { 
         return a.startDate.getTime() - b.startDate.getTime();
       });
+
+      //TODO: rewrite this! This is AWFUL!
       tasks.forEach(function(task) { 
         var day = task.startDate.getDate()-startMonthDay;
         //quicky way to catch month-ends
@@ -628,11 +599,31 @@ $.when(lastYear,thisYear,journalRaw).done(function (lastYear,thisYear,journalRaw
         dosageItems.forEach(function(item) { 
           dosageBox.append(item + '<br>');
         });
-
+        var dayStart = journal.dayStartHour(currentDay);
+        if (dayStart) { 
+          r("--");
+          for (var i = 0; i < 4; i++) {
+            addDayBar(".day-tasks",index,dayStart-hoursOffset+i*5);
+          }
+        }
 
 
       });
 
+      //TODO: refactor this with addTotalsBar()?
+      function addDayBar(el,index,hours,label) {
+        var height = (hours/24*99.84).toFixed(2)/1;
+        label = label || '';
+        var wrongDayStyle = (height > 100 || height < 0) ? ";background:red" : '';
+        if (height > 100) { 
+          height -= 100; index += 1;
+        } else if (height < 0) {
+          height += 100; index -= 1;
+        } 
+        if (index >= 0 && index <= 6) {
+          $(el+":eq("+index+")").append("<div class=day-bar style='top:"+height+"%"+wrongDayStyle+"'>"+label+"</div>");
+        }
+      }
 
       function filterToWeek(startDate,tasks) {
         var weekStart = startDate.getTime(),

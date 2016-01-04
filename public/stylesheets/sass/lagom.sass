@@ -81,6 +81,7 @@ $darkOrange: #ff6600
   left: 0px
   right: 0px
 .week-column, #week-totals
+  position: relative
   font-size: 12px
   display: flex
   flex-flow: column
@@ -145,13 +146,16 @@ $darkOrange: #ff6600
   cursor: default
   user-select: none
   -moz-user-select: none
-.totals-bar
+.totals-bar, .day-bar
   text-align: right
-  transform: rotate(180deg)
   position: absolute
-  background: red
+  background: chartreuse
   width: 100%
   height: 1px
+  z-index: 90
+.totals-bar
+  background: red
+  transform: rotate(180deg)
 .dosage
   font-size: 11px
 .timebar-cat

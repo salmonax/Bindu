@@ -3,20 +3,27 @@ function buildJournal(lines) {
   var journal = { 
     entries: [], 
     dosages: [],
+    dayStartHour: function(date) {
+      var today = getDosage(date);
+      return today.length > 0 ? today[0].startHour : null;
+    },
     dayDosageItems: function(date) { 
-      //YUCK. this should just be a filter run on journal for the current week.
-      var dateOnly = new Date(date.getTime())
-      dateOnly.setHours(0,0,0,0)
-      var today = journal.dosages.filter( function(dosage) {
-        return dosage.date.getTime() == dateOnly.getTime();
-      });
+      //TODO: replace calling this 7 times from renderWeek() with parsley-style filter
+      var today = getDosage(date);
       return today.length > 0 ? today[0].items.sort() : [];
     }
   };
-  var currentDate;
-  var currentYear;
-  var inDosage = false;
-  var currentDosageSet;
+  function getDosage(date) {
+    var dateOnly = new Date(date.getTime())
+    dateOnly.setHours(0,0,0,0)
+    return journal.dosages.filter( function(dosage) {
+      return dosage.date.getTime() == dateOnly.getTime();
+    });
+  }
+  var currentDate,
+      currentYear,
+      inDosage = false,
+      currentDosages;
   lines.forEach(function(line,i) {
     line = line.trim();
     // if (i > 300) { return }
@@ -25,10 +32,15 @@ function buildJournal(lines) {
       // journal.entries.push({ date: line })
     } else if (isDosageHeading(line)) {
       if (line.split('(')[0].trim() == "Start") {
-        currentDosageSet = { items: [] };
+        currentDosages = { items: [] };
         // p('--- START DOSAGE DAY ---');
         // p(currentDate);
         inDosage = true;
+
+        var startHour = line.split('(')[1].split('-')[0],
+            pm = (startHour.indexOf('pm') == -1 || startHour.indexOf('12pm') != -1) ? 0 : 12;
+        startHour = parseInt(startHour)+pm;
+
         var dateString = currentDate.split(/,\s?/);
         var timeString;
         /* Create new Date from date string */
@@ -53,16 +65,17 @@ function buildJournal(lines) {
           var diff = dayDiff(fixedDay,oldDay);
           currentDosageDate.setDate(currentDosageDate.getDate()-diff);
         }
-        currentDosageSet.date = currentDosageDate;
+        currentDosages.date = currentDosageDate;
+        currentDosages.startHour = startHour;
         // p(currentDosageDate);
       }
     } else if (inDosage) {
       if (line.length > 0) {
         // p(line);
-        currentDosageSet.items.push(line.replace('*',''));
+        currentDosages.items.push(line.replace('*',''));
       } else {
         inDosage = false;
-        journal.dosages.push(currentDosageSet);
+        journal.dosages.push(currentDosages);
         // p("---- END DOSAGE DAY ---");
       }
     }
