@@ -41,6 +41,7 @@
           return filtered.reduce(function (sum, task) {
             var bleedDuration = 0;
             //adjusts for tasks that are out of bounds
+            //TODO: put a similar check in filterToWeek()
             if(task.startDate.getTime() < startTime) {
               bleedDuration = (startTime-task.startDate.getTime())/(3600000)*2;
             }
@@ -49,11 +50,31 @@
             }
             return sum + parseInt(task.duration)-bleedDuration;
           },0);
+        },
+        getStatsKeys: function() { return statsKeys; },
+        //TODO: this is just to support old code; make a more a general-use filterer
+        createFilteredStats: function(tasks) {
+          var stats = {};
+          statsKeys.forEach(function (key) { stats[key] = {} });
+
+          tasks.forEach(function (task) { 
+            statsKeys.forEach(function (key) {
+              var value = task[key];
+              stats[key][value] = stats[key][value] || 0;
+              stats[key][value] += parseInt(task.duration);
+            });
+          });
+          return stats;
+        },
+        getUnique: function(key,tasks) {
+          tasks = tasks || parsley.tasks;
+          var baseArray = tasks.map(function(task) { return task[key]; });
+          return baseArray.filter(function(v,i) { return baseArray.indexOf(v) == i && v});
         }
 
       };
 
-      var statsKeys = "year month week tag category subcategory".split(' ');
+      var statsKeys = "year month week tag category subcategory media".split(' ');
       statsKeys.forEach(function(key) { parsley.stats[key] = {} });
       //NOTE: currently assumes tag definitions are at the top of file!
       //would be better to capture all tag defs FIRST, then re-iterate
@@ -116,7 +137,8 @@
             subcategory,
             description,
             duration,
-            medium = null,
+            //NOTE: might cause problem with filters
+            media =  null,
             progress = null;
 
         var split = line.split(/\s+|\t+/);
@@ -144,19 +166,20 @@
         var endDate = new Date(year, parseInt(month)-1, day, endHours, endMinutes);
 
         var startDate = new Date(year, parseInt(month)-1, day, startHours,startMinutes);
-        /* baseDate is the date marked in the pomsheet */
+        /* baseDate is the date marked in the pomsheet, without time info */
         var baseDate = new Date(year,parseInt(month)-1,day);
+        baseDate.setHours(0,0,0,0);
 
         if (middle.length >= 2) {
           categories = middle[0].split(/,\s?/);
-          category = processRocket(categories[0].trim());
-          subcategory = categories[1] ? processRocket(categories[1].trim()) : "None";
+          category = parseRocket(categories[0].trim());
+          subcategory = categories[1] ? parseRocket(categories[1].trim()) : "None";
           description = middle.slice(1,middle.length).join(' ').trim();
         } else {
           category = subcategory = "None";
           description = middle.join(' ').trim();
         }
-        description = processRocket(description);
+        description = parseRocket(description);
         //make sure to lose the toString() business on refactor
         //... that is, if you can even figure out why they're there to begin with.
         return {
@@ -176,7 +199,7 @@
           year: endDate.getFullYear().toString(),
           month: monthName(endDate.getMonth()),
           week: weekNum(endDate.getDate()),
-          medium: medium,
+          media: media,
           progress: progress
         }
 
@@ -188,7 +211,7 @@
           return isTag ? maybeTag : null;
         }
 
-        function processRocket(text) {
+        function parseRocket(text) {
           if (text && text.indexOf("=>") == -1 && text.indexOf("->") == -1) {
             return text;
           }
@@ -201,8 +224,10 @@
             if (value.indexOf("%") != -1) { goal = 100 }
             parsley.media[item] = parsley.media[item] || {}
             if (goal) { parsley.media[item]["goal"] = goal }
-            medium = item;
+            media = item;
             progress = parseInt(value);
+            //TODO: remove rocket and value, but preserve description
+            return text;
           }
         }
       }

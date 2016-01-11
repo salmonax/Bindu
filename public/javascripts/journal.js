@@ -39,6 +39,7 @@ function buildJournal(lines) {
 
         var startHour = line.split('(')[1].split('-')[0],
             pm = (startHour.indexOf('pm') == -1 || startHour.indexOf('12pm') != -1) ? 0 : 12;
+        pm = (startHour.indexOf('12am') == -1) ? pm : -12;
         startHour = parseInt(startHour)+pm;
 
         var dateString = currentDate.split(/,\s?/);

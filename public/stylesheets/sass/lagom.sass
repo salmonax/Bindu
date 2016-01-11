@@ -33,7 +33,7 @@ $darkOrange: #ff6600
   margin-left: 5px
   display: flex
   flex-grow: 0.5
-.mini-month, .mini-week, .mini-year
+.mini-month, .mini-week, .mini-year, .mini-option
   display: flex
   align-items: center
   justify-content: center
@@ -47,7 +47,7 @@ $darkOrange: #ff6600
   margin-right: 5px
 .mini-month:first-child
   margin-left: 5px
-#mini-month-nav
+#mini-month-nav, #mini-option-nav
   display: flex
   flex-grow: 1
   background: $gridDarker
@@ -73,14 +73,14 @@ $darkOrange: #ff6600
   background: $veryLight
   float: right
 #cal-body
-  margin: 10px
+  margin: 6px
   // display: flex
   // flex-flow: row
   top: 0px
   bottom: 0px
   left: 0px
   right: 0px
-.week-column, #week-totals
+.week-column, #week-totals, .block-column
   position: relative
   font-size: 12px
   display: flex
@@ -93,6 +93,9 @@ $darkOrange: #ff6600
   border-color: $veryLight
   border-width: 1px 1px 1px 0px
   box-sizing: border-box
+.block-column
+  width: 22.58%
+  height: 804px
 #week-totals
   width: 9.68%
   flex-shrink: 0
@@ -108,11 +111,16 @@ $darkOrange: #ff6600
 .day-heading
   padding: 2px
   text-align: center
-.day-tasks
+.day-tasks, .block-report
   font-size: 11px
   position: relative
   height: 100%
   overflow: hidden
+.block-report
+  height: 100%
+  background: black
+  font-size: 12px
+  white-space: pre-wrap
 .task, .subtask
   box-sizing: border-box
   padding: 1px 18px 0 0

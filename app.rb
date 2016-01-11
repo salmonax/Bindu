@@ -68,8 +68,11 @@ __END__
     %script{src:"/javascripts/jquery-2.1.0.min.js"}
   %body
     =yield
+    %script{src: "/javascripts/helpers.js"}
     %script{src: "/javascripts/parsley.js"}
     %script{src: "/javascripts/journal.js"}
+  %script{src: "/javascripts/calendarView.js"}
+  %script{src: "/javascripts/calendarController.js"}
   %script{src: "/javascripts/lagom.js"}
   %link{rel:"stylesheet",href:"/stylesheets/lagom.css"}
 :css
