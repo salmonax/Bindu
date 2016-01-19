@@ -10,6 +10,9 @@ $darkOrange: #ff6600
   //min-height: 11px
 #task-details, .day-footer
   text-align: center
+  white-space: pre-wrap
+#task-details.show-task
+  white-space: normal
 #cal-heading
   box-sizing: border-box
   height: 30px
@@ -123,12 +126,13 @@ $darkOrange: #ff6600
   white-space: pre-wrap
 .task, .subtask
   box-sizing: border-box
-  padding: 1px 18px 0 0
+  padding: 0px 18px 0 0
   margin: 0px 0px 1px 18px
   text-align: center
   position: absolute
   width: 100%
   overflow: hidden
+  line-height: 16px
 .subtask
   width: 50%
   margin-left: 50%
@@ -154,15 +158,25 @@ $darkOrange: #ff6600
   cursor: default
   user-select: none
   -moz-user-select: none
-.totals-bar, .day-bar
+.totals-bar, .day-bar, .now-bar
   text-align: right
   position: absolute
-  background: chartreuse
   width: 100%
   height: 1px
   z-index: 90
+.day-bar
+  background: chartreuse
+.now-bar
+  border-box: box-sizing
+  border-style: dotted
+  border-color: aqua
+  height: 0px
+  border-width: 0 0 2px 0
+  opacity: 0.5
+
 .totals-bar
   background: red
+  width: 20%
   transform: rotate(180deg)
 .dosage
   font-size: 11px

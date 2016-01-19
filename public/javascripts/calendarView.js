@@ -1,4 +1,4 @@
-/*
+/* FIRST BATCH:
 1. Move all time-related utility function OUT of renderCalendar().
     arcOf(), weekOf(), dayNameShort(), monthNameShort(), etc. etc.
 2. Move filterToWeek and createFilteredStats() into parsley, where they 
@@ -8,6 +8,13 @@
     calendarController() can call them.
 */
 
+/* SECOND BATCH:
+
+1. Get all event definitions moved into calendarController(), rejiggering things as needed
+2. 
+
+
+*/
 
 var calendarView = function() {  
   return {
@@ -18,10 +25,14 @@ var calendarView = function() {
   //TODO: clean this WAY up
   //For now, it returns renderWeek() and renderTimebar()
   //for the view interface to be used by calendarController()
+
   function renderCalendar(parsley,journal,startDate) {
     //TODO: make sure renderWeek uses hoursOffset to determine what "today" is!!
     //TODO: generateParlsyeColors is STILL iffy... figure out where to put it
-    var $weekMode = "Box"
+    var mode = "Box";
+    var calendar = {};
+    calendar.nowLineInterval;
+
     function generateParsleyColors(parsley,property) { 
       var colors = {}
       var stats = Object.keys(parsley.stats[property]);
@@ -57,6 +68,11 @@ var calendarView = function() {
     parsleyColors["subcategory"] = generateParsleyColors(parsley,"subcategory");
 
     var currentDate = new Date();
+
+    var todayStartHour = journal.dayStartHour(currentDate);
+    var hoursInPomDay = 15;
+    var hoursInPeriod = hoursInPomDay/3;
+
     //Quicky currentDate() debug:
     // currentDate.setMonth(11);
     // currentDate.setDate(29);
@@ -72,11 +88,26 @@ var calendarView = function() {
     $("#calendar").append(div("cal-body",true));
 
     // div("previous");
-    var hoursOffset = 12;
+    // var hoursOffset = 12;
+    var hoursOffset = 2;
     offsetCurrentDate = new Date(currentDate.getTime());
     offsetCurrentDate.setHours(offsetCurrentDate.getHours()-hoursOffset);
 
+    var today = {}
+    today.getTotal = function() {
+      return parsley.dayTotal(currentDate,hoursOffset);
+    };
+    today.getTarget = function() { return parsley.dayTarget(currentDate); };
+    today.getLeft = function() {
+      return Math.max(today.getTarget()-today.getTotal(),0);
+    };
+    today.getPeriodPoms = function() {
+      return [0,0,0];
+    };
+
+
     var startDate = startDate || weekOf(offsetCurrentDate);
+    // var startDate = startDate || weekOf(currentDate);
 
     var benchStart, benchEnd, benchElapsed;
     //EXTRACT INTO OPTIONS:
@@ -105,40 +136,95 @@ var calendarView = function() {
       }
       action[label]();
     });
-
+    //NOTE: this startDate is from renderCalendar()!
+    //NOTE: mode is also from renderCalendar!
+    //TODO: maybe make these not depend on *setting* startDate?
     return {
-      renderWeek: renderWeek,
-      renderTimebar: renderTimebar,
       setMonth: function(index) {
-        var newDate = new Date(startDate.getTime()); 
-        newDate.setMonth(index);
-        renderWeek(newDate,hoursOffset,$weekMode);
+        // var newDate = new Date(startDate.getTime()); 
+        startDate.setMonth(index);
+        renderWeek(startDate,hoursOffset,mode);
       },
       setWeek: function(index) {
-        var newDate = new Date(startDate.getTime()),
-            newWeekStart = (index)*7+1;
-        newDate.setDate(newWeekStart);
-        renderWeek(newDate,hoursOffset,$weekMode);
+        var newWeekStart = (index)*7+1;
+        startDate.setDate(newWeekStart);
+        renderWeek(startDate,hoursOffset,mode);
 
       },
       setYear: function(index) {
-        var newDate = new Date(startDate.getTime());
         var year = parsley.getUnique("year").sort();
-        newDate.setYear(year[index]);
-        renderWeek(newDate,hoursOffset,$weekMode);
+        startDate.setYear(year[index]);
+        renderWeek(startDate,hoursOffset,mode);
       },
       setOption: function(index) { 
         //Ugh...
-        $weekMode = ["Box","Report"][index];
-        renderWeek(startDate,hoursOffset,$weekMode);
+        mode = ["Box","Report"][index];
+        renderWeek(startDate,hoursOffset,mode);
+      },
+      navAction: function(label) {
+        benchStart = new Date().getTime();
+        var action = {
+          next: function() {
+            var currentMonth = startDate.getMonth();
+            startDate.setDate(startDate.getDate()+7);
+            if (startDate.getMonth() != currentMonth) {
+              startDate.setDate(1);
+            }
+            renderWeek(startDate,hoursOffset,mode);
+          },
+          previous: function() {
+            var dateDiff = startDate.getDate()-7;
+            startDate.setDate(dateDiff);
+            //sets date to 29th if there is month bleed
+            //later, there will be a setting for this.
+            if (dateDiff < 0) { 
+              startDate.setDate(29); 
+              //fixes feb
+              if (startDate.getDate() == 1) {
+                startDate.setMonth(1);
+                startDate.setDate(22);
+              }
+            }
+            renderWeek(startDate,hoursOffset,mode);
+          },
+          today: function() {
+            startDate = weekOf(currentDate);
+            renderWeek(startDate,hoursOffset,mode);
+          },
+          '+': function() {
+            hoursOffset += 1;
+            //TODO: please fix +24 and -0 offsets. DONE?
+            hoursOffset = Math.min(hoursOffset,23);
+            renderWeek(startDate,hoursOffset,mode);
+            // r(hoursOffset);
+          },
+          '-': function() {
+            hoursOffset -= 1;
+            hoursOffset = Math.max(hoursOffset,0);
+            renderWeek(startDate,hoursOffset,mode);
+      
+            // r(hoursOffset);
+          },
+          R: function() {
+            hoursOffset = 0;
+            renderWeek(startDate,hoursOffset,mode);
+          }
+        };
+        action[label]();
+        benchEnd = new Date().getTime();
+        benchElapsed = benchEnd-benchStart;
+        // r(benchElapsed);
       }
+
+
+
     }
 
     function arcOf(date) {
       var copiedDate = new Date(date.getTime());
       var month = copiedDate.getMonth();
       copiedDate.setDate(1);
-      copiedDate.setMonth(Math.floor(month/3)*3);
+      copiedDate.setMonth(Math.floor(month/4)*4);
       copiedDate.setHours(0,0,0,0);
       return copiedDate;
     }
@@ -213,7 +299,7 @@ var calendarView = function() {
       //Please stop calling parsley.getUnique().sort() for this crap.
       var yearIndex = parsley.getUnique("year").sort().indexOf(startDate.getFullYear().toString())+1;
 
-      var arcIndex = Math.floor(startDate.getMonth()/3)+1;
+      var arcIndex = Math.floor(startDate.getMonth()/4)+1;
       var arcPos = (arcIndex-1)*monthsInArc;
       var propOptions = "category subcategory media".split(' ');
 
@@ -365,11 +451,12 @@ var calendarView = function() {
     }
 
     function renderWeek(startDate,hoursOffset,mode="Box") {
-      if (hoursOffset) { 
-        startDate.setHours(hoursOffset); 
-      } else {
-        hoursOffset = 0;
+      //TODO: stop this from changing renderCalendar's startDate!
+      // Date behavior has gotten really convoluted since the refactor
+      if (calendar.nowLineInterval) {
+        clearInterval(calendar.nowLineInterval);
       }
+      startDate.setHours(hoursOffset);
 
       var startMonthDay = startDate.getDate(),
           startDay = startDate.getDay(),
@@ -378,13 +465,11 @@ var calendarView = function() {
           nav = $("#cal-nav"),
           tasks = filterToWeek(startDate),
           stats = parsley.createFilteredStats(tasks);
-      // p(stats);
-      //TODO: ugh, please refactor this!
 
 
       body.empty();
       nav.empty();
-
+      //TODO: ugh, please refactor all rendering!
       var navLabels = "- + R previous next today".split(' ');
       nav.append(div("nav-title",true));
       // nav.append('<div id="week-title">'+startDate.toLocaleDateString()+"</div>");
@@ -428,101 +513,6 @@ var calendarView = function() {
 
       nav.append(div(navLabels,false,"nav-button"));
 
-      // $(".mini-month").on("touch click", function() {
-      //   var index = $(".mini-month").index(this);
-      //   var newDate = new Date(startDate.getTime()); 
-      //   newDate.setMonth(index);
-      //   renderWeek(newDate,hoursOffset,mode);
-
-      // });
-      // $(".mini-week").on("touch click", function() { 
-      //   var index = $(".mini-week").index(this);
-      //   var newDate = new Date(startDate.getTime());
-      //   var newWeekStart = (index)*7+1;
-      //   newDate.setDate(newWeekStart);
-      //   renderWeek(newDate,hoursOffset,mode);
-
-      // });
-
-      // $(".mini-year").on("touch click", function() { 
-      //   var index = $(".mini-year").index(this);
-      //   var newDate = new Date(startDate.getTime());
-      //   var year = parsley.getUnique("year").sort();
-      //   // p(year);
-      //   // p(index);
-      //   newDate.setYear(year[index]);
-      //   renderWeek(newDate,hoursOffset,mode);
-      // });
-
-      // $(".mini-option").on("touch click", function() { 
-      //     var mode = $(this).text();
-      //     renderWeek(startDate,hoursOffset,mode);
-      // });
-
-
-      $(".nav-button").on("touch click",function() {
-        benchStart = new Date().getTime();
-        var label = this.id;
-        var action = {
-          next: function() {
-            var nextDate = new Date(startDate.getTime());
-            nextDate.setDate(startDate.getDate()+7);
-            if (nextDate.getMonth() != startDate.getMonth()) {
-              nextDate.setDate(1);
-            }
-
-            renderWeek(nextDate,hoursOffset,mode);
-      
-            // r(nextDate);
-          },
-          previous: function() {
-            var dateDiff = startDate.getDate()-7;
-            var prevDate = new Date(startDate.getTime());
-            prevDate.setDate(dateDiff);
-            //sets date to 29th if there is month bleed
-            //later, there will be a setting for this.
-            if (dateDiff < 0) { 
-              prevDate.setDate(29); 
-              //fixes feb
-              if (prevDate.getDate() == 1) {
-                prevDate.setMonth(1);
-                prevDate.setDate(22);
-              }
-            }
-            renderWeek(prevDate,hoursOffset,mode);
-      
-            // r(prevDate);
-          },
-          today: function() {
-            renderWeek(weekOf(currentDate),hoursOffset,mode);
-      
-          },
-          '+': function() {
-            hoursOffset += 1;
-            //TODO: please fix +24 and -0 offsets.
-            hoursOffset = Math.min(hoursOffset,23);
-            renderWeek(startDate,hoursOffset,mode);
-      
-            // r(hoursOffset);
-          },
-          '-': function() {
-            hoursOffset -= 1;
-            hoursOffset = Math.max(hoursOffset,0);
-            renderWeek(startDate,hoursOffset,mode);
-      
-            // r(hoursOffset);
-          },
-          R: function() {
-            hoursOffset = 0;
-            renderWeek(startDate,hoursOffset,mode);
-      
-          }
-        };
-        action[label]();
-        benchEnd = new Date().getTime();
-        benchElapsed = benchEnd-benchStart;
-        // r(benchElapsed);
-      });
 
       var columnLabel, dayPos;
       if (mode == "Box") {
@@ -556,7 +546,8 @@ var calendarView = function() {
       $("#week-totals").append("<div class=day-heading>Totals</div><div id=totals-body></div><div class=day-footer>"+weekTotal+"</div>");
       
       var totalsBody = $("#totals-body");
-      var hoursInPomDay = 15;
+      //moved to renderCalendar():
+      // var hoursInPomDay = 15;
       var parentHeight = parseInt(totalsBody.css("height"));
       var hourPixels = parentHeight/(hoursInPomDay*7);
 
@@ -620,15 +611,20 @@ var calendarView = function() {
       // addTotalsBar(24*7,"24 hpd");
       // addTotalsBar(9*7,"18 ppd");
       // p(weekTotal);
-      addTotalsBar(weekTotal/2);
+      // addTotalsBar(weekTotal/2);
+
+      pomsPerDay = parsley.dayTarget(startDate);
+      for (var i = 1; i <= 7; i++) {
+        addTotalsBar(pomsPerDay*i/2,i+"d");
+      }
+
+
 
       function addTotalsBar(hours,label) {
         var height = Math.round(hours*hourPixels);
         label = label || '';
         totalsBody.append("<div class=totals-bar style='top:"+height+"px'>"+label+"</div>");
       }
-
-
 
       var columns = $(".day-tasks");
       for (var j = 0; j < 48; j++ ) {
@@ -642,8 +638,9 @@ var calendarView = function() {
         return a.startDate.getTime() - b.startDate.getTime();
       });
 
-      //TODO: use a report with this structure somewhere (function not called)
-      printReport();
+      //TODO: take hoursOffset into account when deciding block
+      //TODO: fix bug where last week's block 3 show up this week
+      if (mode == "Report") { printReport(); }
       function printReport() {
         var reports = [];
         tasks.forEach(function(task) {
@@ -676,7 +673,58 @@ var calendarView = function() {
         });
       }
 
-      //TODO: rewrite this! This is AWFUL!
+      // bookTest();
+
+      function bookTest() {
+        var kindleBooks = parsley.tasks.filter(function (task) {
+          return task.media && parsley.media[task.media] && parsley.media[task.media].goal
+        });
+        var kindleTotals = {};
+        var kindleToday = {};
+        var book, sitting;
+        for (var i in kindleBooks) {
+          book = kindleBooks[i];
+          kindleTotals[book.media] = kindleTotals[book.media] || [];
+          sitting = {};
+          sitting.date = book.baseDate.getTime();
+          sitting.progress = parseInt(book.progress);
+          sitting.duration = parseInt(book.duration);
+          kindleTotals[book.media].push(sitting);
+          // p(kindleBooks[i].media);
+          // p(parsley.media[kindleBooks[i].media].goal);
+        }
+        // p(kindleTotals);
+        for (book in kindleTotals) {
+          kindleTotals[book] = kindleTotals[book].sort(function(a,b) { return a.date - b.date; });
+        }
+        var pomTotal;
+        for (book in kindleTotals) { 
+          pomTotal = 0;
+          kindleTotals[book].forEach(function(sitting) { 
+            //TODO: please stop using strings as pom properties!
+            pomTotal += sitting.duration;
+            sitting.pomTotal = pomTotal;
+          });
+        }
+
+        var lastRead,firstRead;
+        sitting = {}
+        for (book in kindleTotals) { 
+          sitting.first = kindleTotals[book][0]
+          sitting.last = kindleTotals[book][kindleTotals[book].length-1]
+          lastRead = new Date(sitting.last.date ).toLocaleDateString();
+          firstRead = new Date(sitting.first.date).toLocaleDateString();
+          p(book);
+          p("   Started: " + firstRead);
+          p("   Last Read: " + lastRead);
+          p("   Progress: " + sitting.last.progress + "%");
+          p("   Percent Left: " + (100-sitting.last.progress) + "%");
+          p("   Poms Total: " + sitting.last.pomTotal);
+          p("   Progres Per Pom: " + (sitting.last.progress/sitting.last.pomTotal).toFixed(1) + "%");
+        }
+     }
+
+      //TODO: rewrite ALL of this! This is AWFUL!
       tasks.forEach(function(task) { 
         var day = task.startDate.getDate()-startMonthDay;
         //quicky way to catch month-ends
@@ -714,8 +762,17 @@ var calendarView = function() {
         }
 
         function drawTaskBox(day) {
-          $(columns[day]).append('<div data-i="'+task.index+'" class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors["category"][task.category]+'">'+task.category+' '+weekSums[task.category]+'</div>');
-
+          var el = $('<div data-i="'+task.index+'" class="task" style="top:'+top+'%;bottom:'+bottom+'%;background:'+parsleyColors["category"][task.category]+'">'+task.category+' '+weekSums[task.category]+'</div>'),
+              container = $(columns[day]),
+              height = Math.floor((100-parseInt(bottom)-parseInt(top)-1)/2),
+              style;
+          el.appendTo(container);
+          for (var i = 1; i < height; i++) {
+            style = i%2 ? "style='background:white;opacity:0.1'":'';
+            // style = "style='border: 1px dotted rgba(35,35,85,0.5);border-width: 1px 0 0 0'";
+            el.append("<div "+style+">&nbsp</div>");
+          }
+          //This was for kludgy 50/50 cat-subcat display:
           // $(columns[day]).append('<div data-i="'+task.index+'" class="subtask" style="top:'+top+'%;bottom:'+bottom+'%;background:'+subcatColors[task.subcategory]+'">'+task.subcategory+' '+weekSumsSubcat[task.subcategory]+'</div>');
         }
       });
@@ -724,14 +781,84 @@ var calendarView = function() {
       $(".task").on("mouseover", function() { 
         clearTimeout(hoverTimeout);
         var parsleyLine = parsley.lines[$(this).data('i')];
+        $("#task-details").addClass("show-task");
         $("#task-details").text(parsleyLine);
       });
       $(".task").on("mouseout", function() {
         hoverTimeout = setTimeout(function () {
-          $("#task-details").text('')
+          $("#task-details").removeClass("show-task");
+          // $("#task-details").text('')
+          showDayStats();
         },1000);
       });
 
+      showDayStats();
+      calendar.nowLineInterval = setInterval(showDayStats,1000);
+      function showDayStats() {
+        //TODO: put this with time utility stuff
+        function formatHour(hour) {
+          return (hour%12||12)+(Math.floor(hour/12)%2?'pm':'am');
+        }
+        var time = new Date();
+        if ($("#task-details").attr("class") != "show-task") {
+          var hoursSinceStart = time.getHours()-todayStartHour;
+          var currentPeriod = Math.floor(hoursSinceStart/hoursInPeriod)+1;
+          var pomsLeft = today.getLeft();
+          var pomsDone = today.getTotal();
+
+          var periodTarget = Math.ceil(today.getTarget()/3);
+          var cumulativeTarget = currentPeriod*periodTarget;
+          var pomsLeftInPeriod = Math.max(cumulativeTarget-pomsDone,0);
+
+          var currentPeriodEndHour = todayStartHour+currentPeriod*hoursInPeriod;
+          var crunchBeginsHour = currentPeriodEndHour-pomsLeftInPeriod/2;
+
+          // var crunchStatus = (crunchBeginsHour-time.getHours() <= 0) ? "NOW" : formatHour(crunchBeginsHour);
+
+          var displayString = time.toLocaleTimeString() + "    Period: " + currentPeriod + "   " + 
+            "Poms Left: " + pomsLeft + "   "+
+            // "Periods: 0 / 0 / 0" + "   " + 
+            "Uptime: " + hoursSinceStart + " hrs " + time.getMinutes() + " mins";
+             // + "   " +
+            // "Crunch: " + crunchStatus;
+          $("#task-details").text(displayString);
+
+        }
+        updateNowBar(time);
+      }
+      //implemented this way to make sure it works correctly
+      //with shifts. can be made faster in several ways!
+      function updateNowBar(time) {
+        // r(time.getMinutes()/60);
+        // p(time.getHours());
+        $(".week-column").each(function(index,item) {
+          // p(index);
+          var currentDay = new Date(startDate.getTime());
+          currentDay.setDate(currentDay.getDate()+index);
+          if (currentDay.toDateString() == currentDate.toDateString()) {
+            var nowDecimal = time.getHours()+time.getMinutes()/60;
+            // nowDecimal = 2;
+            $(".now-bar").remove();
+            addNowBar(".day-tasks",index,nowDecimal-hoursOffset);
+            return false;
+          }
+        });
+      }
+
+      function addNowBar(el,index,hours,label) {
+        //99.84 ensures that line doesn't disappear at bottom:
+        var height = (hours/24*99.84).toFixed(2)/1;
+        label = label || '';
+        var wrongDayStyle = (height > 100 || height < 0) ? ";border-color:orange" : '';
+        if (height > 100) { 
+          height -= 100; index += 1;
+        } else if (height < 0) {
+          height += 100; index -= 1;
+        } 
+        if (index >= 0 && index <= 6) {
+          $(el+":eq("+index+")").append("<div class=now-bar style='top:"+height+"%"+wrongDayStyle+"'>"+label+"</div>");
+        }
+      }
 
       //ToDo: get rid of this AWFUL way to get totals!
       $(".week-column").each(function (index,item) { 
@@ -749,6 +876,11 @@ var calendarView = function() {
         // var colorString = ratio == 1 ? green : ratio > 1 ? purple : ratio > 0.60 ? orange : red;
 
         // $(this).append("<div style='text-align: center;background:"+colorString+"'>"+total+" / "+target+"</div>");
+        // if (currentDay.toDateString() == currentDate.toDateString())
+        // {
+        //   $(this).addClass("today-day-tasks");
+        // }
+
         $(this).append("<div class='day-footer' style='text-align: center'>"+total+"</div>");
         $(this).append("<div class='dosage'></div>");
         dosageBox = $('.dosage:last');
@@ -766,8 +898,10 @@ var calendarView = function() {
 
       });
 
+
       //TODO: refactor this with addTotalsBar()?
       function addDayBar(el,index,hours,label) {
+        //99.84 ensures that line doesn't disappear at bottom:
         var height = (hours/24*99.84).toFixed(2)/1;
         label = label || '';
         var wrongDayStyle = (height > 100 || height < 0) ? ";background:red" : '';

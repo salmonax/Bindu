@@ -1,5 +1,4 @@
-  //!!!! NOTE: this resembles PomParsley the most.
-// This is called in grepGraph.js, by updateWeekliesGraph()
+//TODO: move everything out of redundnat buildParsleyStructure()
 
   function buildParsleyData(lines) {  
     var line, week;
@@ -26,14 +25,20 @@
           return parsley.targets[index];
         },
 
-        dayTotal: function(dateWithOffset) {
-          var startDate = dateWithOffset;
+        dayTotal: function(dateWithOffset,separateOffset) {
+          var startDate;
+          if (typeof separateOffset == 'number') {
+            startDate = new Date(dateWithOffset.getTime());
+            startDate.setHours(separateOffset,0,0,0);
+          } else {
+            startDate = dateWithOffset;
+          }
           var startTime = startDate.getTime();
           var endDate = new Date(startTime);
           endDate.setDate(endDate.getDate()+1);
           var endTime = endDate.getTime();
           //includes tasks with endDate within bounds
-          //(Note: this is still needed in renderWeek())
+          //(Note: something analogous is still needed in renderWeek())
           var filtered = this.tasks.filter(function (task) {
             return (task.startDate.getTime() > startTime || task.endDate.getTime() > startTime) &&
                     task.startDate.getTime() < endTime;
@@ -211,6 +216,7 @@
           return isTag ? maybeTag : null;
         }
 
+        //Something fishy is going on here...
         function parseRocket(text) {
           if (text && text.indexOf("=>") == -1 && text.indexOf("->") == -1) {
             return text;
@@ -229,6 +235,7 @@
             //TODO: remove rocket and value, but preserve description
             return text;
           }
+          return text;
         }
       }
 
