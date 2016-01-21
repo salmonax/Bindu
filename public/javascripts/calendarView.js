@@ -33,6 +33,31 @@ var calendarView = function() {
     var calendar = {};
     calendar.nowLineInterval;
 
+    //TODO: this.... belongs in renderWeek()
+    //The reason it's here is.. button needs access to closured startDate
+    function getAdjustedOffset() {
+      //TODO: get daysInMonth out of here! this is to squash a task rendering bug 
+      //      when daysInMonth is scoped from renderCalendar()!
+      var daysInMonth = new Date(startDate.getFullYear(),startDate.getMonth()+1,0).getDate();
+      var currentDate = new Date(startDate.getTime()),
+          startDay = startDate.getDate(),
+          startHours = [],
+          startHour,
+          currentDay,
+          minOffset
+      for (var i = 0; i < 7; i++) {
+        currentDay = startDay+i;
+        currentDate.setDate(currentDay);
+        startHour = journal.dayStartHour(currentDate);
+        //Warning: magic closure var. Might as well start marking them.
+        if (typeof startHour == 'number' && currentDay <= daysInMonth) {
+          startHours.push(startHour);
+        }
+      }
+      startHours = startHours.length ? startHours : [0];
+      return Math.min.apply(Math,startHours);
+    }
+
     function generateParsleyColors(parsley,property) { 
       var colors = {}
       var stats = Object.keys(parsley.stats[property]);
@@ -74,7 +99,7 @@ var calendarView = function() {
     var hoursInPeriod = hoursInPomDay/3;
 
     //Quicky currentDate() debug:
-    // currentDate.setMonth(11);
+    // currentDate.setMonth(10);
     // currentDate.setDate(29);
     // currentDate.setYear(2015);
 
@@ -107,6 +132,7 @@ var calendarView = function() {
 
 
     var startDate = startDate || weekOf(offsetCurrentDate);
+
     // var startDate = startDate || weekOf(currentDate);
 
     var benchStart, benchEnd, benchElapsed;
@@ -114,7 +140,7 @@ var calendarView = function() {
 
     benchStart = new Date().getTime();
     renderWeek(startDate,hoursOffset);
-    // renderTimebar(arcOf(startDate));
+    // renderTimebar(arcOf(startDate),false,"media");
 
     benchEnd = new Date().getTime();
     benchElapsed = benchEnd-benchStart;
@@ -188,6 +214,7 @@ var calendarView = function() {
             renderWeek(startDate,hoursOffset,mode);
           },
           today: function() {
+            currentDate = new Date();
             startDate = weekOf(currentDate);
             renderWeek(startDate,hoursOffset,mode);
           },
@@ -206,8 +233,8 @@ var calendarView = function() {
             // r(hoursOffset);
           },
           R: function() {
-            hoursOffset = 0;
-            renderWeek(startDate,hoursOffset,mode);
+            hoursOffset = getAdjustedOffset();
+            renderWeek(startDate,hoursOffset,mode,true);
           }
         };
         action[label]();
@@ -259,7 +286,9 @@ var calendarView = function() {
       return html;
     }
 
-    function renderTimebar(startDate,fullYear=false,propToShow="category") {
+    function renderTimebar(startDate,fullYear,propToShow) {
+      fullYear = fullYear || false;
+      propToShow = propToShow || "category";
       // p(startDate);
       benchStart = new Date().getTime();
       $("#cal-body").empty();
@@ -341,15 +370,13 @@ var calendarView = function() {
 
       var table = $("<table>").addClass('timebar');
       var row,catCol;
-      var headingRow = "<td style='white-space:nowrap;width:1px;'>Categories</td>"
+      var headingRow = "<td class='cat-width-setter' style='width:1px;white-space:nowrap;'>Categories</td><td style='width:2px'></td>"
       for (i = 0; i < monthsToShow; i++) {
         headingRow += "<td colspan=5>"+monthNameShort(i+arcPos)+"</td>";
       }
 
       // p(monthsInArc*5);
       // p(arcPos*5);
-      
-
 
       table.append(headingRow);
       var tasks = fullYear ? filterToYear(startDate) : filterToArc(startDate),
@@ -366,12 +393,19 @@ var calendarView = function() {
       var drawStart = fullYear ? 0 : arcPos*5,
           drawEnd = fullYear ? 60 : (arcPos+monthsInArc)*5;
 
+      //TODO: this is for setting the Categories column width despite fixed column
+      // It's slow. Try changing it.
+      var maxPropWidth = 0;
+      var measureEl = $("<span class='timebar' style='display:none'></span>");
+      measureEl.appendTo("#cal-body");
+
       uniques.forEach(function(property,i) {
         // if (category != "Bindu") { return; }
         // if (!category) { p(i); }
-        var dayCols ='';
+        var dayCols ="<td></td>";
         var propColor = parsleyColors[propToShow][property];
         var displayNum;
+        var propWidth;
         for (var i = drawStart; i < drawEnd; i++) {
           displayNum = parseInt((gridStats[property][i+1]/1).toFixed(0));
           // displayNum = '';
@@ -380,8 +414,11 @@ var calendarView = function() {
           // dayCols += "&nbsp</td>";
         }
         row = $("<tr>");
-        var propString = property.replace(' ','&nbsp')+"&nbsp("+stats[propToShow][property]+"&nbspof&nbsp"+parsley.stats[propToShow][property]+")";
-        
+        // var propString = property.replace(' ','&nbsp')+"&nbsp("+stats[propToShow][property]+"&nbspof&nbsp"+parsley.stats[propToShow][property]+")";
+        var propString = property+" ("+stats[propToShow][property]+" of "+parsley.stats[propToShow][property]+")";
+        // maxPropLength = Math.max(propString.length,maxPropLength);
+        propWidth = measureEl.text(propString).width();
+        maxPropWidth = Math.max(propWidth,maxPropWidth);
         propCol = $("<td style='background:"+propColor+"'>"+propString+"</td>");
         row = row.append(propCol).append(dayCols);
 
@@ -389,8 +426,8 @@ var calendarView = function() {
         table.append(row);
       });
       $("#cal-body").append(table);
-      benchEnd = new Date().getTime();
-      benchElapsed = benchEnd-benchStart;
+      $('.cat-width-setter').css({width:maxPropWidth});
+
       // r("Timebar time: " + benchElapsed);
 
       function buildGridStats(tasks) {
@@ -450,7 +487,10 @@ var calendarView = function() {
       p("OH BOY!");
     }
 
-    function renderWeek(startDate,hoursOffset,mode="Box") {
+    function renderWeek(startDate,hoursOffset,mode,autoAdjustOffset) {
+      // p(getMinOffset());
+      // p(hoursOffset);
+      mode = mode || "Box";
       //TODO: stop this from changing renderCalendar's startDate!
       // Date behavior has gotten really convoluted since the refactor
       if (calendar.nowLineInterval) {
@@ -465,6 +505,12 @@ var calendarView = function() {
           nav = $("#cal-nav"),
           tasks = filterToWeek(startDate),
           stats = parsley.createFilteredStats(tasks);
+      //TODO: find better way to keep the closured var updated with next-prev events
+      // r(daysInMonth);
+      // p(startDate);
+      
+      // p(daysInMonth);
+      // if (autoAdjustOffset == true) { hoursOffset = getAdjustedOffset(); }
 
 
       body.empty();
@@ -768,7 +814,7 @@ var calendarView = function() {
               style;
           el.appendTo(container);
           for (var i = 1; i < height; i++) {
-            style = i%2 ? "style='background:white;opacity:0.1'":'';
+            style = i%2 ? "style='background:white;opacity:0.09'":'';
             // style = "style='border: 1px dotted rgba(35,35,85,0.5);border-width: 1px 0 0 0'";
             el.append("<div "+style+">&nbsp</div>");
           }
@@ -837,7 +883,6 @@ var calendarView = function() {
           currentDay.setDate(currentDay.getDate()+index);
           if (currentDay.toDateString() == currentDate.toDateString()) {
             var nowDecimal = time.getHours()+time.getMinutes()/60;
-            // nowDecimal = 2;
             $(".now-bar").remove();
             addNowBar(".day-tasks",index,nowDecimal-hoursOffset);
             return false;
@@ -849,14 +894,16 @@ var calendarView = function() {
         //99.84 ensures that line doesn't disappear at bottom:
         var height = (hours/24*99.84).toFixed(2)/1;
         label = label || '';
-        var wrongDayStyle = (height > 100 || height < 0) ? ";border-color:orange" : '';
+        //PRETTY sure this isn't needed, but just in case I end up wanting it...
+        // var wrongDayStyle = (height > 100 || height < 0) ? ";border-color:orange" : '';
         if (height > 100) { 
           height -= 100; index += 1;
         } else if (height < 0) {
           height += 100; index -= 1;
         } 
         if (index >= 0 && index <= 6) {
-          $(el+":eq("+index+")").append("<div class=now-bar style='top:"+height+"%"+wrongDayStyle+"'>"+label+"</div>");
+          // $(el+":eq("+index+")").append("<div class=now-bar style='top:"+height+"%"+wrongDayStyle+"'>"+label+"</div>");
+          $(el+":eq("+index+")").append("<div class=now-bar style='top:"+height+"%'>"+label+"</div>");
         }
       }
 
