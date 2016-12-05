@@ -10,7 +10,7 @@ function buildJournal(lines) {
     dayDosageItems: function(date) { 
       //TODO: replace calling this 7 times from renderWeek() with parsley-style filter
       var today = getDosage(date);
-      return today.length > 0 ? today[0].items.sort() : [];
+      return today.length > 0 ? today[0].items : [];
     }
   };
   function getDosage(date) {
@@ -30,7 +30,7 @@ function buildJournal(lines) {
     if (isDateLine(line)) {
       currentDate = line;
       // journal.entries.push({ date: line })
-    } else if (isDosageHeading(line)) {
+    } else if (isDosageHeading(line) && currentDate) {
       if (line.split('(')[0].trim() == "Start") {
         currentDosages = { items: [] };
         // p('--- START DOSAGE DAY ---');
@@ -69,13 +69,17 @@ function buildJournal(lines) {
         currentDosages.date = currentDosageDate;
         currentDosages.startHour = startHour;
         // p(currentDosageDate);
+      } else {
+      //pushes a dashed line for period separation
+      //just temporary, so that info isn't lost in view
+        currentDosages.items.push('---');
       }
     } else if (inDosage) {
       if (line.length > 0) {
-        // p(line);
         currentDosages.items.push(line.replace('*',''));
       } else {
         inDosage = false;
+        // p(currentDosages)
         journal.dosages.push(currentDosages);
         // p("---- END DOSAGE DAY ---");
       }
@@ -87,6 +91,7 @@ function buildJournal(lines) {
   function isDosageHeading(line) {
     return /^\*?(Start|Middle|End)\s?\(.*(am|pm)-.*(am|pm)\)/.test(line);
   }
+  //TODO:move to utils.dayNum?
   function dayNum(name) {
     var num = "Sunday Monday Tuesday Wednesday Thursday Friday Saturday".split(' ').indexOf(name);
     return num != -1 ? num : null;
@@ -97,6 +102,6 @@ function buildJournal(lines) {
   }
 
   function isDateLine(line) {
-    return /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s?(January|February|March|April|May|June|July|August|September|October|November|December)\s?\d{1,2}/.test(line);
+    return /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s*(January|February|March|April|May|June|July|August|September|October|November|December)\s*\d{1,2}/.test(line);
   }
 }

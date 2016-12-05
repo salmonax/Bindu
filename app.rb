@@ -15,18 +15,24 @@ set :session_secret, ENV['SESSION_SECRET']
 class Journal
   def self.init
     print "Creating/Updating Yomu journal..."
-    @@filename = "/home/samonakuba/Dropbox/Journal 2015 - Part 3.doc"
+    @@filename = "/home/samonakuba/Dropbox/Journal 2016 - Part 1.doc"
+    @@second = "/home/samonakuba/Dropbox/Journal 2015 - Part 3.doc"
     @@cached = File.mtime(@@filename)
     # @@text = Yomu.new(@@filename).text
-    @@text = DocRipper::TextRipper.new(@@filename).text
-              .gsub(/\u00e2\u0080(\u009C|\u009D)/,'"')
-              .gsub("\u00e2\u0080\u00a6","...")
-              # .gsub(/[^\n]\n\w/m,'')
+    @@text = rip(@@filename) + rip(@@second)
     puts "Done!"
   end
+
   def self.text
     self.init if @@cached != File.mtime(@@filename)
     @@text
+  end
+
+  def self.rip(filename)
+    DocRipper::TextRipper.new(filename).text
+                  .gsub(/\u00e2\u0080(\u009C|\u009D)/,'"')
+                  .gsub("\u00e2\u0080\u00a6","...")
+                  # .gsub(/[^\n]\n\w/m,'')
   end
 end
 
@@ -69,6 +75,7 @@ __END__
   %body
     =yield
     %script{src: "/javascripts/helpers.js"}
+    %script{src: "/javascripts/utils.js"}
     %script{src: "/javascripts/parsley.js"}
     %script{src: "/javascripts/journal.js"}
   %script{src: "/javascripts/calendarView.js"}

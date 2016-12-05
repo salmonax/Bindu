@@ -1,5 +1,6 @@
-var lastYear = $.get('/2015'),
-    thisYear = $.get('/2014'),
+// var lastYear = $.get('/2014'),
+var lastYear = '',
+    thisYear = $.get('/2015'),
     journalRaw = $.get('/journal');
 
 //TODO: get view rendered BEFORE getting the data
