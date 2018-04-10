@@ -15,8 +15,8 @@ set :session_secret, ENV['SESSION_SECRET']
 class Journal
   def self.init
     print "Creating/Updating Yomu journal..."
-    @@filename = "/home/samonakuba/Dropbox/Journal 2016 - Part 1.doc"
-    @@second = "/home/samonakuba/Dropbox/Journal 2015 - Part 3.doc"
+    @@filename = "/home/salmonax/Dropbox/Journal 2016 - Part 1.doc"
+    @@second = "/home/salmonax/Dropbox/Journal 2015 - Part 3.doc"
     @@cached = File.mtime(@@filename)
     # @@text = Yomu.new(@@filename).text
     @@text = rip(@@filename) + rip(@@second)
@@ -57,7 +57,7 @@ end
 get /(\d{4})/ do
   content_type :text
   year = params[:captures].first
-  @filename = "/home/samonakuba/Dropbox/Apps/Vicara/#{year} Pomodoro.txt"
+  @filename = "/home/salmonax/Dropbox/Apps/Vicara/#{year} Pomodoro.txt"
   if File.exists?(@filename)
     File.read(@filename) 
   else

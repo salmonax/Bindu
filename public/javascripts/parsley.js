@@ -1,3 +1,7 @@
+const PARSLEY_DEFAULTS = {
+  dayTarget: 16,
+};
+
 function buildParsleyData(lines) {
   var currentDate;
   var parsley = { 
@@ -10,7 +14,7 @@ function buildParsleyData(lines) {
 
     dayTarget: function(dateWithOffset) {
       var index = monthName(dateWithOffset.getMonth());
-      return parsley.targets[index];
+      return parsley.targets[index] || PARSLEY_DEFAULTS.dayTarget;
     },
 
     dayTotal: function(dateWithOffset,separateOffset) {

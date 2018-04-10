@@ -1,3 +1,7 @@
+const JOURNAL_DEFAULTS = {
+  dayStartHour: 9,
+};
+
 //ToDo: put weekday-related crap into helper functions
 function buildJournal(lines) { 
   var journal = { 
@@ -5,7 +9,7 @@ function buildJournal(lines) {
     dosages: [],
     dayStartHour: function(date) {
       var today = getDosage(date);
-      return today.length > 0 ? today[0].startHour : null;
+      return today.length > 0 ? today[0].startHour : JOURNAL_DEFAULTS.dayStartHour;
     },
     dayDosageItems: function(date) { 
       //TODO: replace calling this 7 times from renderWeek() with parsley-style filter
