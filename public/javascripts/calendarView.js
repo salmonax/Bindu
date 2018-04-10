@@ -16,12 +16,28 @@
 
 */
 
+
+window.route = function route(loc) {
+  window.dispatchEvent(new CustomEvent('en-route', { 
+    detail: { 
+      newLocation: loc 
+    } 
+  }))
+  this.history.pushState(null, null, '/#' + loc)
+}
+
+window.addEventListener('en-route', e => {
+  console.log(e.detail.newLocation)
+})
+
+
 var calendarView = function() {  
   return {
     init: function(model) { 
       return renderCalendar(model.parsley,model.journal);
     }
   }
+
   //TODO: clean this WAY up
   //For now, it returns renderWeek() and renderTimebar()
   //for the view interface to be used by calendarController()
@@ -146,7 +162,18 @@ var calendarView = function() {
     //EXTRACT INTO OPTIONS:
 
     benchStart = new Date().getTime();
-    renderWeek(startDate,hoursOffset);
+    // renderWeek(startDate,hoursOffset);
+     
+    /// DRY this up to renderByRoute or something
+    var actionMap = {
+      weeklies: renderWeek.bind(null, startDate, hoursOffset, mode),
+      monthlies: renderMonth.bind(null, startDate, hoursOffset),
+      timebar: renderTimebar.bind(null, arcOf(startDate))
+    };
+    console.log(actionMap[window.location.hash.substr(1)]);
+    (actionMap[window.location.hash.substr(1)] || actionMap['weeklies'])()  
+
+
     // renderMonth(startDate,hoursOffset);
     // renderTimebar(arcOf(startDate),false,"media");
 
@@ -192,44 +219,71 @@ var calendarView = function() {
         benchStart = new Date().getTime();
         var action = {
           weeklies: function() {
+            route('weeklies')
             renderWeek(startDate,hoursOffset);
           },
           monthlies: function() {
+            route('monthlies')
             renderMonth(startDate,hoursOffset);
           },
           timebar: function() {
+            route('timebar')
             renderTimebar(arcOf(startDate));
           },
           treemap: function() {
             renderTreemap();
           },
           next: function() {
+            var page = window.location.hash.substr(1)
             var currentMonth = startDate.getMonth();
-            startDate.setDate(startDate.getDate()+7);
-            if (startDate.getMonth() != currentMonth) {
-              startDate.setDate(1);
-            }
-            renderWeek(startDate,hoursOffset,mode);
-          },
-          previous: function() {
-            var dateDiff = startDate.getDate()-7;
-            startDate.setDate(dateDiff);
-            //sets date to 29th if there is month bleed
-            //later, there will be a setting for this.
-            if (dateDiff < 0) { 
-              startDate.setDate(29); 
-              //fixes feb
-              if (startDate.getDate() == 1) {
-                startDate.setMonth(1);
-                startDate.setDate(22);
+            if (page === 'monthlies') {
+              startDate.setMonth(startDate.getMonth()+1)
+            } else {
+              startDate.setDate(startDate.getDate()+7);
+              if (startDate.getMonth() != currentMonth) {
+                startDate.setDate(1);
               }
             }
-            renderWeek(startDate,hoursOffset,mode);
+            var actionMap = {
+              weeklies: renderWeek.bind(null, startDate, hoursOffset, mode),
+              monthlies: renderMonth.bind(null, startDate, hoursOffset),
+            };
+            (actionMap[page] || actionMap['weeklies'])()
+          },
+          previous: function() {
+            var page = window.location.hash.substr(1)
+            var currentMonth = startDate.getMonth();
+            if (page === 'monthlies') {
+              startDate.setMonth(startDate.getMonth()-1)
+            } else {
+              var dateDiff = startDate.getDate()-7;
+              startDate.setDate(dateDiff);
+              //sets date to 29th if there is month bleed
+              //later, there will be a setting for this.
+              if (dateDiff < 0) { 
+                startDate.setDate(29); 
+                //fixes feb
+                if (startDate.getDate() == 1) {
+                  startDate.setMonth(1);
+                  startDate.setDate(22);
+                }
+              }
+            }
+            var actionMap = {
+              weeklies: renderWeek.bind(null, startDate, hoursOffset, mode),
+              monthlies: renderMonth.bind(null, startDate, hoursOffset),
+            };
+            (actionMap[page] || actionMap['weeklies'])()
+
           },
           today: function() {
             currentDate = new Date();
             startDate = weekOf(currentDate);
-            renderWeek(startDate,hoursOffset,mode);
+            var actionMap = {
+              weeklies: renderWeek.bind(null, startDate, hoursOffset, mode),
+              monthlies: renderMonth.bind(null, startDate, hoursOffset),
+            };
+            (actionMap[window.location.hash.substr(1)] || actionMap['weeklies'])()
           },
           '+': function() {
             hoursOffset += 1;
@@ -484,6 +538,7 @@ var calendarView = function() {
     }
 
     function renderMonth(startDate) {
+      console.log('tried it!')
       var i,
         $body = $("#cal-body"),
         $epicNav = $("#mini-epic-nav"),
