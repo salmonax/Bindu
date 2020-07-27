@@ -1101,6 +1101,8 @@ var calendarView = function() {
         if ($("#task-details").attr("class") != "show-task") {
           // p(latestStartDate);
           //WARNING: latestStartDate is closured and depends on being called after the calendar has been drawn!!
+          console.log(time.toLocaleString())
+          console.log(latestStartDate.toLocaleString())
           var hoursSinceStart = Math.floor((time.getTime()-latestStartDate.getTime())/(1000*60*60));
           // var hoursSinceStart = time.getHours()-todayStartHour;
           var currentPeriod = Math.floor(hoursSinceStart/hoursInPeriod)+1;

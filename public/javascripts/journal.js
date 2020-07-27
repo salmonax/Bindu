@@ -76,7 +76,7 @@ function buildJournal(lines) {
       } else {
       //pushes a dashed line for period separation
       //just temporary, so that info isn't lost in view
-        currentDosages.items.push('---');
+        currentDosages && currentDosages.items.push('---');
       }
     } else if (inDosage) {
       if (line.length > 0) {
